@@ -410,10 +410,12 @@ body {
   background: rgba(30, 30, 50, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 24px;
-  padding: 40px 32px;
+  padding: 32px 28px;
   text-align: center;
-  max-width: 380px;
+  max-width: 420px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
   animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -436,11 +438,23 @@ body {
 .victory-stats {
   font-size: 1.1rem;
   color: #ccc;
-  margin-bottom: 28px;
+  margin-bottom: 18px;
 }
 
 .victory-stats strong {
   color: #f5576c;
+}
+
+/* Completed puzzle image in victory card */
+.victory-completed-image {
+  display: none;
+  width: 100%;
+  max-width: 220px;
+  border-radius: 12px;
+  margin: 0 auto 20px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  object-fit: cover;
+  aspect-ratio: 1;
 }
 
 /* Victory Player Name */
@@ -546,6 +560,35 @@ body {
 
 .btn-leaderboard-win:hover {
   background: rgba(255, 210, 82, 0.12);
+}
+
+/* Create puzzle button in game header */
+.btn-create-puzzle {
+  padding: 8px 14px;
+  border: 1px solid rgba(240, 147, 251, 0.3);
+  border-radius: 10px;
+  background: rgba(240, 147, 251, 0.1);
+  color: #f093fb;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-create-puzzle:hover {
+  background: rgba(240, 147, 251, 0.18);
+  border-color: rgba(240, 147, 251, 0.5);
+}
+
+/* Create own puzzle button in victory card */
+.btn-create-own {
+  background: rgba(240, 147, 251, 0.12);
+  color: #f093fb;
+  border: 1px solid rgba(240, 147, 251, 0.25);
+}
+
+.btn-create-own:hover {
+  background: rgba(240, 147, 251, 0.22);
 }
 
 /* ===== Responsive ===== */

@@ -211,7 +211,15 @@
         return;
       }
 
-      puzzleInfoEl.textContent = `拼图 ID: ${puzzleId}`;
+      // Load puzzle name, then load leaderboard
+      async function init() {
+        try {
+          const puzzleData = await window.API.loadPuzzle(puzzleId);
+          puzzleName = puzzleData.name || 'HuaRongImage';
+        } catch (_) { /* use puzzleId as fallback */ }
+        puzzleInfoEl.textContent = `拼图: ${escapeHtml(puzzleName)}`;
+        loadLeaderboard();
+      }
 
       async function loadLeaderboard() {
         loadingEl.style.display = 'block';
@@ -274,7 +282,7 @@
       }
 
       refreshBtn.addEventListener('click', loadLeaderboard);
-      loadLeaderboard();
+      init();
     })();
   </script>
 </body>

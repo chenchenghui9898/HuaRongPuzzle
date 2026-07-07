@@ -23,13 +23,16 @@
   const btnBack = document.getElementById('btn-back');
   const btnShare = document.getElementById('btn-share');
   const btnLeaderboard = document.getElementById('btn-leaderboard');
+  const btnCreatePuzzleGame = document.getElementById('btn-create-puzzle-game');
   const btnAgain = document.getElementById('btn-again');
   const btnShareWin = document.getElementById('btn-share-win');
   const btnSubmitScore = document.getElementById('btn-submit-score');
   const btnLeaderboardWin = document.getElementById('btn-leaderboard-win');
+  const btnCreateOwn = document.getElementById('btn-create-own');
   const playerNameInput = document.getElementById('player-name-input');
   const victoryNameSection = document.getElementById('victory-name-section');
   const victorySavedMsg = document.getElementById('victory-saved-msg');
+  const victoryCompletedImage = document.getElementById('victory-completed-image');
   const moveCounter = document.getElementById('move-counter');
   const timerEl = document.getElementById('timer');
   const victoryTime = document.getElementById('victory-time');
@@ -90,6 +93,8 @@
     btnSubmitScore.addEventListener('click', submitScore);
     btnLeaderboard.addEventListener('click', openLeaderboard);
     btnLeaderboardWin.addEventListener('click', openLeaderboard);
+    btnCreatePuzzleGame.addEventListener('click', goToSetup);
+    btnCreateOwn.addEventListener('click', goToSetup);
 
     // Difficulty buttons
     difficultyButtons.addEventListener('click', (e) => {
@@ -321,6 +326,13 @@
     setTimeout(() => {
       victoryTime.textContent = formatTime(gameState.elapsedSeconds);
       victoryMoves.textContent = String(gameState.moveCount);
+
+      // Show completed image (use the original imageElement src)
+      if (gameState.imageElement) {
+        victoryCompletedImage.src = gameState.imageElement.src;
+        victoryCompletedImage.style.display = 'block';
+      }
+
       // Reset completion UI
       playerNameInput.value = '';
       victoryNameSection.style.display = 'block';
@@ -493,6 +505,29 @@
     if (!gameState.readonly && gameState.imageElement) {
       btnStart.disabled = false;
     }
+  }
+
+  // --- Navigate to Setup (for "I want to create a puzzle" button) ---
+  function goToSetup() {
+    if (gameScreen.classList.contains('active')) {
+      stopTimer();
+    }
+    Confetti.stop();
+    victoryOverlay.classList.remove('active');
+    gameScreen.classList.remove('active');
+    setupScreen.classList.add('active');
+    puzzleGrid.innerHTML = '';
+
+    window.history.replaceState({}, '', '/');
+
+    gameState.currentState = null;
+    gameState.solvedState = null;
+    gameState.tileDataUrls = [];
+    gameState.moveCount = 0;
+    gameState.elapsedSeconds = 0;
+    gameState.puzzleId = null;
+    gameState.timerStarted = false;
+    gameState.completionSubmitted = false;
   }
 
   // --- Refresh grid on resize ---
