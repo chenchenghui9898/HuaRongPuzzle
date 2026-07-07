@@ -367,21 +367,27 @@ button, .tile, .upload-area, input[type="text"] {
 /* Toast */
 .toast {
   position: fixed;
-  bottom: 30px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  background: rgba(0, 0, 0, 0.85);
+  transform: translate(-50%, -50%) scale(0.8);
+  background: rgba(0, 0, 0, 0.9);
   color: #fff;
-  padding: 12px 24px;
+  padding: 14px 24px;
   border-radius: 12px;
   font-size: 0.95rem;
-  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.35s ease;
   z-index: 1000;
   pointer-events: none;
+  opacity: 0;
+  max-width: 85vw;
+  word-break: break-all;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .toast.show {
-  transform: translateX(-50%) translateY(0);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
 }
 
 /* ===== Victory Overlay ===== */
@@ -764,10 +770,9 @@ button, .tile, .upload-area, input[type="text"] {
 
   /* Toast */
   .toast {
-    bottom: max(16px, env(safe-area-inset-bottom, 16px));
-    padding: 10px 20px;
+    padding: 12px 18px;
     font-size: 0.85rem;
-    white-space: nowrap;
+    max-width: 90vw;
   }
 }
 
@@ -892,7 +897,7 @@ button, .tile, .upload-area, input[type="text"] {
 
   .toast {
     font-size: 0.8rem;
-    padding: 8px 16px;
+    padding: 10px 14px;
   }
 }
 

@@ -438,6 +438,64 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
+  // --- Clipboard (polyfill for older browsers / Baidu etc.) ---
+  function copyToClipboard(text) {
+    // Method 1: Modern async clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        // If it fails, try fallback
+        return copyWithExecCommand(text);
+      });
+    }
+    // Method 2: Legacy execCommand fallback
+    return copyWithExecCommand(text);
+  }
+
+  function copyWithExecCommand(text) {
+    return new Promise(function (resolve, reject) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.width = '2em';
+      textarea.style.height = '2em';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      textarea.setAttribute('readonly', '');
+      document.body.appendChild(textarea);
+
+      // iOS needs contentEditable + range selection
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        textarea.contentEditable = 'true';
+        textarea.readOnly = false;
+        var range = document.createRange();
+        range.selectNodeContents(textarea);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        textarea.setSelectionRange(0, text.length);
+      } else {
+        textarea.select();
+        textarea.setSelectionRange(0, text.length);
+      }
+
+      var ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (e) {
+        // ignore
+      }
+      document.body.removeChild(textarea);
+
+      if (ok) {
+        resolve();
+      } else {
+        reject(new Error('execCommand failed'));
+      }
+    });
+  }
+
   // --- Share ---
   async function sharePuzzle() {
     btnShare.disabled = true;
@@ -470,8 +528,14 @@
       }
 
       const shareUrl = `${window.location.origin}/?puzzle=${puzzleId}`;
-      await navigator.clipboard.writeText(shareUrl);
-      showToast('✅ 分享链接已复制到剪贴板！');
+
+      try {
+        await copyToClipboard(shareUrl);
+        showToast('✅ 分享链接已复制到剪贴板！');
+      } catch (_clipErr) {
+        // Clipboard failed entirely — show URL so user can long-press copy
+        showToast('📋 请手动复制: ' + shareUrl, 8000);
+      }
 
       window.history.replaceState({}, '', `/?puzzle=${puzzleId}`);
     } catch (err) {
@@ -553,13 +617,13 @@
   // --- Toast ---
   let toastTimeout;
 
-  function showToast(msg) {
+  function showToast(msg, duration) {
     toastMsg.textContent = msg;
     toast.classList.add('show');
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
       toast.classList.remove('show');
-    }, 3000);
+    }, duration || 3000);
   }
 
   // --- Boot ---
