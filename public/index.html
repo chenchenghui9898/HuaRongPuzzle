@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片华容道 - Picture Klotski</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== Setup Screen ===== -->
+  <section id="setup-screen" class="screen active">
+    <div class="setup-card">
+      <h1 class="title">🖼️ 图片华容道</h1>
+      <p class="subtitle">上传一张图片，选择难度，开始挑战！</p>
+
+      <!-- Image Upload -->
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="image-input" accept="image/jpeg,image/png" hidden>
+        <div class="upload-placeholder" id="upload-placeholder">
+          <span class="upload-icon">📷</span>
+          <span>点击上传图片 (JPG / PNG)</span>
+        </div>
+        <img id="image-preview" class="image-preview" alt="Preview" style="display:none">
+      </div>
+
+      <!-- Puzzle Name -->
+      <div class="name-section">
+        <label class="section-label" for="puzzle-name-input">拼图名称</label>
+        <input type="text" id="puzzle-name-input" class="name-input"
+               placeholder="HuaRongImage" maxlength="50">
+      </div>
+
+      <!-- Difficulty Selection -->
+      <div class="difficulty-section">
+        <label class="section-label">选择难度</label>
+        <div class="difficulty-buttons" id="difficulty-buttons">
+          <button class="diff-btn" data-size="3">3 × 3</button>
+          <button class="diff-btn active" data-size="4">4 × 4</button>
+          <button class="diff-btn" data-size="5">5 × 5</button>
+          <button class="diff-btn" data-size="6">6 × 6</button>
+          <button class="diff-btn" data-size="7">7 × 7</button>
+        </div>
+      </div>
+
+      <!-- Start Button -->
+      <button class="btn-start" id="btn-start" disabled>开始游戏</button>
+
+      <!-- Loading Shared Puzzle -->
+      <div class="loading-shared" id="loading-shared" style="display:none">
+        <div class="spinner"></div>
+        <p>正在加载分享的拼图...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Game Screen ===== -->
+  <section id="game-screen" class="screen">
+    <div class="game-header">
+      <button class="btn-back" id="btn-back">← 返回</button>
+      <div class="game-stats">
+        <span class="stat">⏱ <span id="timer">00:00</span></span>
+        <span class="stat">👆 步数: <span id="move-counter">0</span></span>
+      </div>
+      <div class="game-actions">
+        <button class="btn-leaderboard" id="btn-leaderboard" title="完成排行榜">🏆 排行榜</button>
+        <button class="btn-share" id="btn-share" title="分享此拼图">🔗 分享</button>
+      </div>
+    </div>
+
+    <p class="puzzle-name-display" id="puzzle-name-display"></p>
+
+    <div class="game-board-wrapper">
+      <div class="game-board" id="puzzle-grid">
+        <!-- Tiles rendered dynamically -->
+      </div>
+    </div>
+
+    <p class="game-hint" id="game-hint">点击空格旁边的图块来移动</p>
+
+    <!-- Share Toast -->
+    <div class="toast" id="toast">
+      <span id="toast-msg"></span>
+    </div>
+  </section>
+
+  <!-- ===== Victory Overlay ===== -->
+  <div class="overlay" id="victory-overlay">
+    <canvas id="confetti-canvas"></canvas>
+    <div class="victory-card">
+      <h2 class="victory-title">🎉 恭喜通关！</h2>
+      <p class="victory-stats">
+        用时 <strong id="victory-time">00:00</strong> · 步数 <strong id="victory-moves">0</strong>
+      </p>
+      <div class="victory-name-section" id="victory-name-section">
+        <label class="victory-name-label" for="player-name-input">留下你的名字</label>
+        <input type="text" id="player-name-input" class="player-name-input"
+               placeholder="匿名玩家" maxlength="30">
+      </div>
+      <p class="victory-saved-msg" id="victory-saved-msg" style="display:none">✅ 成绩已记录</p>
+      <div class="victory-actions">
+        <button class="btn-victory btn-submit" id="btn-submit-score">📝 提交成绩</button>
+        <button class="btn-victory btn-leaderboard-win" id="btn-leaderboard-win">🏆 查看排行榜</button>
+        <button class="btn-victory btn-again" id="btn-again">🔄 再来一局</button>
+        <button class="btn-victory btn-share-win" id="btn-share-win">🔗 分享此拼图</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts (order matters: engine → api → renderer → confetti → app) -->
+  <script src="puzzle-engine.js"></script>
+  <script src="api.js"></script>
+  <script src="renderer.js"></script>
+  <script src="confetti.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

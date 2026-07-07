@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完成排行榜 - 图片华容道</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 700px;
+      margin-top: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .back-btn {
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      color: #ddd;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover { background: rgba(255,255,255,0.15); }
+
+    .title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffd452, #f5576c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      color: #ddd;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .refresh-btn:hover { background: rgba(255,255,255,0.15); }
+
+    .puzzle-info {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: #f5576c;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #f5576c;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 16px; }
+
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 14px 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .leaderboard-table th {
+      background: rgba(255,255,255,0.08);
+      color: #aaa;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .leaderboard-table tbody tr {
+      transition: background 0.15s;
+    }
+
+    .leaderboard-table tbody tr:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .leaderboard-table .rank-1 { color: #ffd452; font-weight: 700; }
+    .leaderboard-table .rank-2 { color: #ccc; font-weight: 700; }
+    .leaderboard-table .rank-3 { color: #d4a574; font-weight: 700; }
+
+    .time-col { color: #52ff8f; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .moves-col { font-variant-numeric: tabular-nums; }
+
+    .medal { font-size: 1.2rem; }
+
+    @media (max-width: 500px) {
+      .title { font-size: 1.2rem; }
+      .leaderboard-table th, .leaderboard-table td { padding: 10px 8px; font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="/" class="back-btn">← 返回游戏</a>
+      <h1 class="title">🏆 完成排行榜</h1>
+      <button class="refresh-btn" id="refresh-btn">🔄 刷新</button>
+    </div>
+
+    <div class="puzzle-info" id="puzzle-info"></div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>加载排行榜中...</p>
+    </div>
+
+    <div class="error" id="error" style="display:none"></div>
+    <div class="empty" id="empty" style="display:none">
+      <span class="empty-icon">📋</span>
+      <p>暂无完成记录</p>
+      <p style="font-size:0.85rem;color:#888;margin-top:8px;">成为第一个完成此拼图的人吧！</p>
+    </div>
+
+    <table class="leaderboard-table" id="leaderboard-table" style="display:none">
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>玩家</th>
+          <th>用时</th>
+          <th>步数</th>
+          <th>完成日期</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body"></tbody>
+    </table>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const puzzleId = params.get('puzzle');
+
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const emptyEl = document.getElementById('empty');
+      const tableEl = document.getElementById('leaderboard-table');
+      const tbodyEl = document.getElementById('leaderboard-body');
+      const puzzleInfoEl = document.getElementById('puzzle-info');
+      const refreshBtn = document.getElementById('refresh-btn');
+
+      if (!puzzleId) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = '缺少拼图 ID';
+        return;
+      }
+
+      puzzleInfoEl.textContent = `拼图 ID: ${puzzleId}`;
+
+      async function loadLeaderboard() {
+        loadingEl.style.display = 'block';
+        errorEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+        tableEl.style.display = 'none';
+
+        try {
+          const data = await window.API.getLeaderboard(puzzleId);
+
+          loadingEl.style.display = 'none';
+
+          if (!data.leaderboard || data.leaderboard.length === 0) {
+            emptyEl.style.display = 'block';
+            return;
+          }
+
+          tbodyEl.innerHTML = '';
+          data.leaderboard.forEach(entry => {
+            const tr = document.createElement('tr');
+            const rankClass = entry.rank <= 3 ? ` rank-${entry.rank}` : '';
+
+            let rankHtml = String(entry.rank);
+            if (entry.rank === 1) rankHtml = '<span class="medal">🥇</span> ' + entry.rank;
+            else if (entry.rank === 2) rankHtml = '<span class="medal">🥈</span> ' + entry.rank;
+            else if (entry.rank === 3) rankHtml = '<span class="medal">🥉</span> ' + entry.rank;
+
+            const m = Math.floor(entry.timeSeconds / 60);
+            const s = entry.timeSeconds % 60;
+            const timeStr = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+
+            const date = new Date(entry.completedAt);
+            const dateStr = date.toLocaleDateString('zh-CN', {
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit'
+            });
+
+            tr.innerHTML = `
+              <td class="${rankClass.trim()}">${rankHtml}</td>
+              <td>${escapeHtml(entry.playerName)}</td>
+              <td class="time-col">${timeStr}</td>
+              <td class="moves-col">${entry.moveCount} 步</td>
+              <td>${dateStr}</td>
+            `;
+            tbodyEl.appendChild(tr);
+          });
+
+          tableEl.style.display = 'table';
+        } catch (err) {
+          loadingEl.style.display = 'none';
+          errorEl.style.display = 'block';
+          errorEl.textContent = '加载失败: ' + err.message;
+        }
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      refreshBtn.addEventListener('click', loadLeaderboard);
+      loadLeaderboard();
+    })();
+  </script>
+</body>
+</html>
