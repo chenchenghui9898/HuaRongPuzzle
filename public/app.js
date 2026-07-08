@@ -31,7 +31,6 @@
   var btnShare = document.getElementById('btn-share');
   var btnLeaderboard = document.getElementById('btn-leaderboard');
   var btnCreatePuzzleGame = document.getElementById('btn-create-puzzle-game');
-  var btnAgain = document.getElementById('btn-again');
   var btnRestartWin = document.getElementById('btn-restart-win');
   var btnShareWin = document.getElementById('btn-share-win');
   var btnSubmitScore = document.getElementById('btn-submit-score');
@@ -152,7 +151,6 @@
     btnRestart.addEventListener('click', restartPuzzle);
     btnRestartWin.addEventListener('click', restartPuzzle);
     btnShare.addEventListener('click', sharePuzzle);
-    btnAgain.addEventListener('click', backToSetup);
     btnShareWin.addEventListener('click', sharePuzzle);
     btnSubmitScore.addEventListener('click', submitScore);
     btnLeaderboard.addEventListener('click', openLeaderboard);

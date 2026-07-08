@@ -672,16 +672,6 @@ button, .tile, .upload-area, input[type="text"] {
   transform: translateY(-2px);
 }
 
-.btn-again {
-  background: linear-gradient(135deg, #f5576c, #f093fb);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(245, 87, 108, 0.3);
-}
-
-.btn-again:hover {
-  box-shadow: 0 6px 28px rgba(245, 87, 108, 0.45);
-}
-
 .btn-share-win {
   background: rgba(255, 255, 255, 0.1);
   color: #ddd;
