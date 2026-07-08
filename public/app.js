@@ -348,6 +348,7 @@
     // revert to setup screen after 20 seconds.
     var loadTimeout = setTimeout(function () {
       if (loadingShared.style.display !== 'none') {
+        dbg('dbg-status', 'timeout (20s)', '#f66');
         hideSharedLoading();
         showToast('加载超时，请检查网络后刷新重试');
         window.history.replaceState({}, '', '/');
@@ -356,6 +357,9 @@
 
     try {
       var data = await API.loadPuzzle(puzzleId);
+      dbg('dbg-call', 'GET /api/puzzles/' + puzzleId);
+      dbg('dbg-status', '200 OK', '#0f0');
+      dbg('dbg-pid', data.puzzleId, '#0f0');
 
       gameState.gridSize = data.gridSize;
       gameState.hiddenTileNum = data.hiddenIndex;
@@ -436,6 +440,7 @@
       gameHint.textContent = '点击空格旁边的图块来移动';
 
     } catch (err) {
+      dbg('dbg-status', 'error: ' + (err && err.message ? err.message : 'unknown'), '#f66');
       hideSharedLoading();
       showToast('加载拼图失败: ' + (err && err.message ? err.message : '未知错误'));
       window.history.replaceState({}, '', '/');
@@ -831,6 +836,23 @@
     }, duration || 3000);
   }
 
+  // --- Debug panel ---
+  function dbg(id, text, color) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.textContent = text;
+      if (color) el.style.color = color;
+    }
+  }
+
+  function populateDebug(path, matched, pid, called, status) {
+    dbg('dbg-path', path);
+    dbg('dbg-match', matched ? 'YES ✓' : 'NO ✗', matched ? '#0f0' : '#f66');
+    dbg('dbg-pid', pid || '(null)', pid ? '#0f0' : '#f66');
+    dbg('dbg-call', called, '#ff0');
+    dbg('dbg-status', status, status === '200 OK' ? '#0f0' : (status.indexOf('err') >= 0 ? '#f66' : '#ff0'));
+  }
+
   // --- Boot (readyState check: safe on slow mobile browsers) ---
   function boot() {
     if (!window.PuzzleEngine || !window.API || !window.Renderer || !window.Confetti) {
@@ -839,6 +861,12 @@
     }
     init();
     var puzzleId = getPuzzleIdFromUrl();
+
+    // Populate debug immediately
+    var path = window.location.pathname;
+    var matched = puzzleId !== null;
+    populateDebug(path, matched, puzzleId, puzzleId ? 'GET /api/puzzles/' + puzzleId : 'pending', puzzleId ? 'loading…' : 'no puzzleId in URL');
+
     if (puzzleId) {
       loadSharedPuzzle(puzzleId);
     }

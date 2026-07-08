@@ -127,6 +127,22 @@
     </div>
   </div>
 
+  <!-- ===== Debug Overlay ===== -->
+  <div id="debug-panel" style="
+    position:fixed; bottom:8px; right:8px; z-index:9999;
+    background:rgba(0,0,0,0.78); color:#0f0; padding:10px 12px;
+    border-radius:10px; font-family:monospace; font-size:11px;
+    line-height:1.5; max-width:260px; word-break:break-all;
+    pointer-events:none; border:1px solid rgba(0,255,0,0.2);
+  ">
+    <div><b>🐛 Debug</b></div>
+    <div>pathname: <span id="dbg-path">-</span></div>
+    <div>matched: <span id="dbg-match">-</span></div>
+    <div>puzzleId: <span id="dbg-pid">-</span></div>
+    <div>api call: <span id="dbg-call">-</span></div>
+    <div>api status: <span id="dbg-status">-</span></div>
+  </div>
+
   <!-- Scripts (order matters: engine → api → renderer → confetti → app) -->
   <script src="puzzle-engine.js"></script>
   <script src="api.js"></script>
