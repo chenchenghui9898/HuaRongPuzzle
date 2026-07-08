@@ -845,6 +845,21 @@
     }
   }
 
+  var debugBall = document.getElementById('debug-ball');
+  var debugPanel = document.getElementById('debug-panel');
+  var debugClose = document.getElementById('debug-close');
+
+  debugBall.addEventListener('click', function () {
+    debugPanel.style.display = 'block';
+    debugBall.style.display = 'none';
+  });
+
+  debugClose.addEventListener('click', function (e) {
+    e.stopPropagation();
+    debugPanel.style.display = 'none';
+    debugBall.style.display = 'flex';
+  });
+
   function populateDebug(path, matched, pid, called, status) {
     dbg('dbg-path', path);
     dbg('dbg-match', matched ? 'YES ✓' : 'NO ✗', matched ? '#0f0' : '#f66');

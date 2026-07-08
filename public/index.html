@@ -127,15 +127,30 @@
     </div>
   </div>
 
-  <!-- ===== Debug Overlay ===== -->
+  <!-- ===== Debug Ball (floating) ===== -->
+  <div id="debug-ball" style="
+    position:fixed; bottom:12px; right:12px; z-index:9999;
+    width:44px; height:44px; border-radius:50%;
+    background:rgba(0,0,0,0.75); color:#0f0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; cursor:pointer; user-select:none;
+    border:1.5px solid rgba(0,255,0,0.35);
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  ">🐛</div>
+
   <div id="debug-panel" style="
-    position:fixed; bottom:8px; right:8px; z-index:9999;
-    background:rgba(0,0,0,0.78); color:#0f0; padding:10px 12px;
-    border-radius:10px; font-family:monospace; font-size:11px;
-    line-height:1.5; max-width:260px; word-break:break-all;
-    pointer-events:none; border:1px solid rgba(0,255,0,0.2);
+    position:fixed; bottom:12px; right:12px; z-index:9998;
+    background:rgba(0,0,0,0.85); color:#0f0; padding:12px 14px;
+    border-radius:12px; font-family:monospace; font-size:11px;
+    line-height:1.6; max-width:280px; word-break:break-all;
+    border:1px solid rgba(0,255,0,0.25);
+    display:none;
   ">
-    <div><b>🐛 Debug</b></div>
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <span><b>🐛 Debug</b></span>
+      <span id="debug-close" style="cursor:pointer; color:#f66; font-size:14px; line-height:1; pointer-events:auto;">✕</span>
+    </div>
     <div>pathname: <span id="dbg-path">-</span></div>
     <div>matched: <span id="dbg-match">-</span></div>
     <div>puzzleId: <span id="dbg-pid">-</span></div>
