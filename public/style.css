@@ -347,10 +347,20 @@ button, .tile, .upload-area, input[type="text"] {
 .game-header {
   width: 100%;
   display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.game-header-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  gap: 12px;
+  gap: 8px;
+}
+
+.game-header-row-full {
+  width: 100%;
 }
 
 .btn-back, .btn-share, .btn-leaderboard {
@@ -378,6 +388,24 @@ button, .tile, .upload-area, input[type="text"] {
 .game-actions {
   display: flex;
   gap: 8px;
+}
+
+/* Full-width create puzzle button */
+.btn-create-puzzle-full {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid rgba(240, 147, 251, 0.3);
+  border-radius: 10px;
+  background: rgba(240, 147, 251, 0.1);
+  color: #f093fb;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-create-puzzle-full:hover {
+  background: rgba(240, 147, 251, 0.18);
+  border-color: rgba(240, 147, 251, 0.5);
 }
 
 .game-stats {
@@ -689,24 +717,6 @@ button, .tile, .upload-area, input[type="text"] {
   background: rgba(255, 210, 82, 0.12);
 }
 
-/* Create puzzle button in game header */
-.btn-create-puzzle {
-  padding: 8px 14px;
-  border: 1px solid rgba(240, 147, 251, 0.3);
-  border-radius: 10px;
-  background: rgba(240, 147, 251, 0.1);
-  color: #f093fb;
-  font-size: 0.9rem;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.btn-create-puzzle:hover {
-  background: rgba(240, 147, 251, 0.18);
-  border-color: rgba(240, 147, 251, 0.5);
-}
-
 /* Create own puzzle button in victory card */
 .btn-create-own {
   background: rgba(240, 147, 251, 0.12);
@@ -784,33 +794,41 @@ button, .tile, .upload-area, input[type="text"] {
 
   /* Game Screen */
   .game-header {
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 10px;
   }
 
-  /* Row 1: back button + stats */
-  .game-header > .btn-back { order: 1; }
-  .game-header > .game-stats { order: 2; margin-left: auto; }
+  .game-header-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
 
-  /* Row 2: action buttons (full width) */
-  .game-header > .game-actions {
-    order: 3;
-    width: 100%;
+  .game-stats {
+    margin-left: auto;
+  }
+
+  .game-actions {
+    flex: 1 1 100%;
     justify-content: center;
     gap: 6px;
   }
 
   .game-stats {
+    margin-left: auto;
     gap: 12px;
     font-size: 0.85rem;
   }
 
-  .btn-back, .btn-share, .btn-leaderboard, .btn-create-puzzle, .btn-restart {
+  .btn-back, .btn-share, .btn-leaderboard, .btn-restart {
     padding: 8px 10px;
     font-size: 0.78rem;
     border-radius: 8px;
     min-height: 40px;
+  }
+
+  .btn-create-puzzle-full {
+    font-size: 0.9rem;
+    padding: 10px;
   }
 
   .puzzle-name-display {
@@ -944,16 +962,16 @@ button, .tile, .upload-area, input[type="text"] {
     font-size: 0.78rem;
   }
 
-  .btn-back, .btn-share, .btn-leaderboard, .btn-create-puzzle, .btn-restart {
+  .btn-back, .btn-share, .btn-leaderboard, .btn-restart {
     padding: 7px 8px;
     font-size: 0.73rem;
     border-radius: 7px;
     min-height: 38px;
   }
 
-  .btn-create-puzzle {
-    font-size: 0.73rem;
-    padding: 7px 8px;
+  .btn-create-puzzle-full {
+    font-size: 0.85rem;
+    padding: 9px;
   }
 
   .puzzle-name-display {
