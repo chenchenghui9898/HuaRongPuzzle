@@ -217,6 +217,97 @@ button, .tile, .upload-area, input[type="text"] {
   cursor: not-allowed;
 }
 
+/* Resume Progress Prompt */
+.resume-prompt {
+  text-align: center;
+  padding: 16px 0 8px;
+}
+
+.resume-text {
+  font-size: 1.1rem;
+  color: #ffd452;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.resume-detail {
+  font-size: 0.95rem;
+  color: #aaa;
+  margin-bottom: 20px;
+}
+
+.resume-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-resume {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-resume:hover {
+  transform: translateY(-2px);
+}
+
+.btn-resume-continue {
+  background: linear-gradient(135deg, #52d4ff, #52ff8f);
+  color: #1a1a2e;
+  box-shadow: 0 4px 20px rgba(82, 212, 255, 0.3);
+}
+
+.btn-resume-continue:hover {
+  box-shadow: 0 6px 28px rgba(82, 212, 255, 0.45);
+}
+
+.btn-resume-restart {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-resume-restart:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Restart button in game header */
+.btn-restart {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 210, 82, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 210, 82, 0.1);
+  color: #ffd452;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-restart:hover {
+  background: rgba(255, 210, 82, 0.18);
+  border-color: rgba(255, 210, 82, 0.5);
+}
+
+/* Restart button in victory card */
+.btn-restart-win {
+  background: rgba(255, 210, 82, 0.12);
+  color: #ffd452;
+  border: 1px solid rgba(255, 210, 82, 0.3);
+}
+
+.btn-restart-win:hover {
+  background: rgba(255, 210, 82, 0.22);
+}
+
 /* Loading Shared */
 .loading-shared {
   display: flex;
@@ -270,7 +361,7 @@ button, .tile, .upload-area, input[type="text"] {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-.btn-share:disabled, .btn-leaderboard:disabled {
+.btn-share:disabled, .btn-leaderboard:disabled, .btn-restart:disabled {
   opacity: 0.4;
   cursor: wait;
 }
@@ -702,9 +793,9 @@ button, .tile, .upload-area, input[type="text"] {
     font-size: 0.85rem;
   }
 
-  .btn-back, .btn-share, .btn-leaderboard, .btn-create-puzzle {
-    padding: 8px 12px;
-    font-size: 0.8rem;
+  .btn-back, .btn-share, .btn-leaderboard, .btn-create-puzzle, .btn-restart {
+    padding: 8px 10px;
+    font-size: 0.78rem;
     border-radius: 8px;
     min-height: 40px;
   }
@@ -836,9 +927,9 @@ button, .tile, .upload-area, input[type="text"] {
     font-size: 0.78rem;
   }
 
-  .btn-back, .btn-share, .btn-leaderboard, .btn-create-puzzle {
-    padding: 7px 10px;
-    font-size: 0.75rem;
+  .btn-back, .btn-share, .btn-leaderboard, .btn-create-puzzle, .btn-restart {
+    padding: 7px 8px;
+    font-size: 0.73rem;
     border-radius: 7px;
     min-height: 38px;
   }

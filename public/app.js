@@ -5,45 +5,53 @@
   'use strict';
 
   // --- DOM References ---
-  const setupScreen = document.getElementById('setup-screen');
-  const gameScreen = document.getElementById('game-screen');
-  const victoryOverlay = document.getElementById('victory-overlay');
-  const puzzleGrid = document.getElementById('puzzle-grid');
-  const confettiCanvas = document.getElementById('confetti-canvas');
+  var setupScreen = document.getElementById('setup-screen');
+  var gameScreen = document.getElementById('game-screen');
+  var victoryOverlay = document.getElementById('victory-overlay');
+  var puzzleGrid = document.getElementById('puzzle-grid');
+  var confettiCanvas = document.getElementById('confetti-canvas');
 
-  const uploadArea = document.getElementById('upload-area');
-  const imageInput = document.getElementById('image-input');
-  const uploadPlaceholder = document.getElementById('upload-placeholder');
-  const imagePreview = document.getElementById('image-preview');
-  const btnStart = document.getElementById('btn-start');
-  const loadingShared = document.getElementById('loading-shared');
-  const difficultyButtons = document.getElementById('difficulty-buttons');
-  const puzzleNameInput = document.getElementById('puzzle-name-input');
+  var setupContent = document.getElementById('setup-content');
+  var setupSubtitle = document.getElementById('setup-subtitle');
+  var uploadArea = document.getElementById('upload-area');
+  var imageInput = document.getElementById('image-input');
+  var uploadPlaceholder = document.getElementById('upload-placeholder');
+  var imagePreview = document.getElementById('image-preview');
+  var btnStart = document.getElementById('btn-start');
+  var loadingShared = document.getElementById('loading-shared');
+  var difficultyButtons = document.getElementById('difficulty-buttons');
+  var puzzleNameInput = document.getElementById('puzzle-name-input');
+  var resumePrompt = document.getElementById('resume-prompt');
+  var resumeDetail = document.getElementById('resume-detail');
+  var btnResumeContinue = document.getElementById('btn-resume-continue');
+  var btnResumeFresh = document.getElementById('btn-resume-fresh');
 
-  const btnBack = document.getElementById('btn-back');
-  const btnShare = document.getElementById('btn-share');
-  const btnLeaderboard = document.getElementById('btn-leaderboard');
-  const btnCreatePuzzleGame = document.getElementById('btn-create-puzzle-game');
-  const btnAgain = document.getElementById('btn-again');
-  const btnShareWin = document.getElementById('btn-share-win');
-  const btnSubmitScore = document.getElementById('btn-submit-score');
-  const btnLeaderboardWin = document.getElementById('btn-leaderboard-win');
-  const btnCreateOwn = document.getElementById('btn-create-own');
-  const playerNameInput = document.getElementById('player-name-input');
-  const victoryNameSection = document.getElementById('victory-name-section');
-  const victorySavedMsg = document.getElementById('victory-saved-msg');
-  const victoryCompletedImage = document.getElementById('victory-completed-image');
-  const moveCounter = document.getElementById('move-counter');
-  const timerEl = document.getElementById('timer');
-  const victoryTime = document.getElementById('victory-time');
-  const victoryMoves = document.getElementById('victory-moves');
-  const puzzleNameDisplay = document.getElementById('puzzle-name-display');
-  const gameHint = document.getElementById('game-hint');
-  const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toast-msg');
+  var btnBack = document.getElementById('btn-back');
+  var btnRestart = document.getElementById('btn-restart');
+  var btnShare = document.getElementById('btn-share');
+  var btnLeaderboard = document.getElementById('btn-leaderboard');
+  var btnCreatePuzzleGame = document.getElementById('btn-create-puzzle-game');
+  var btnAgain = document.getElementById('btn-again');
+  var btnRestartWin = document.getElementById('btn-restart-win');
+  var btnShareWin = document.getElementById('btn-share-win');
+  var btnSubmitScore = document.getElementById('btn-submit-score');
+  var btnLeaderboardWin = document.getElementById('btn-leaderboard-win');
+  var btnCreateOwn = document.getElementById('btn-create-own');
+  var playerNameInput = document.getElementById('player-name-input');
+  var victoryNameSection = document.getElementById('victory-name-section');
+  var victorySavedMsg = document.getElementById('victory-saved-msg');
+  var victoryCompletedImage = document.getElementById('victory-completed-image');
+  var moveCounter = document.getElementById('move-counter');
+  var timerEl = document.getElementById('timer');
+  var victoryTime = document.getElementById('victory-time');
+  var victoryMoves = document.getElementById('victory-moves');
+  var puzzleNameDisplay = document.getElementById('puzzle-name-display');
+  var gameHint = document.getElementById('game-hint');
+  var toast = document.getElementById('toast');
+  var toastMsg = document.getElementById('toast-msg');
 
   // --- Game State ---
-  const gameState = {
+  var gameState = {
     imageFile: null,
     imageElement: null,
     gridSize: 4,
@@ -62,31 +70,74 @@
     isAnimating: false,
     readonly: false,
     originalImageUrl: null,
-    timerStarted: false,       // Timer starts on first move
-    completionSubmitted: false, // Avoid duplicate submissions
+    timerStarted: false,
+    completionSubmitted: false,
   };
+
+  // --- Progress Cache (localStorage) ---
+  function progressKey(pid) {
+    return 'klotski_progress_' + pid;
+  }
+
+  function saveProgress() {
+    if (!gameState.puzzleId || !gameState.currentState) return;
+    try {
+      var data = {
+        s: gameState.currentState,       // 2D array
+        e: gameState.emptyPos,
+        t: gameState.elapsedSeconds,
+        m: gameState.moveCount,
+        ts: gameState.timerStarted,
+        gs: gameState.gridSize,
+        hn: gameState.hiddenTileNum,
+        tm: Date.now()
+      };
+      localStorage.setItem(progressKey(gameState.puzzleId), JSON.stringify(data));
+    } catch (e) { /* quota exceeded — ignore */ }
+  }
+
+  function loadProgress(pid) {
+    try {
+      var raw = localStorage.getItem(progressKey(pid));
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      // Validate essential fields
+      if (!data.s || !data.e) return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearProgress(pid) {
+    try {
+      localStorage.removeItem(progressKey(pid));
+    } catch (e) { /* ignore */ }
+  }
 
   // --- Initialize ---
   function init() {
     Confetti.init(confettiCanvas);
 
     // Event delegation on the puzzle grid
-    puzzleGrid.addEventListener('click', (e) => {
-      const tile = e.target.closest('.tile');
+    puzzleGrid.addEventListener('click', function (e) {
+      var tile = e.target.closest('.tile');
       if (!tile) return;
       if (tile.classList.contains('empty') || tile.classList.contains('no-hover')) return;
-      const row = parseInt(tile.dataset.row, 10);
-      const col = parseInt(tile.dataset.col, 10);
+      var row = parseInt(tile.dataset.row, 10);
+      var col = parseInt(tile.dataset.col, 10);
       if (!isNaN(row) && !isNaN(col)) {
         handleTileClick(row, col);
       }
     });
 
     // Setup listeners
-    uploadArea.addEventListener('click', () => imageInput.click());
+    uploadArea.addEventListener('click', function () { imageInput.click(); });
     imageInput.addEventListener('change', handleImageSelect);
     btnStart.addEventListener('click', startGame);
     btnBack.addEventListener('click', backToSetup);
+    btnRestart.addEventListener('click', restartPuzzle);
+    btnRestartWin.addEventListener('click', restartPuzzle);
     btnShare.addEventListener('click', sharePuzzle);
     btnAgain.addEventListener('click', backToSetup);
     btnShareWin.addEventListener('click', sharePuzzle);
@@ -95,31 +146,31 @@
     btnLeaderboardWin.addEventListener('click', openLeaderboard);
     btnCreatePuzzleGame.addEventListener('click', goToSetup);
     btnCreateOwn.addEventListener('click', goToSetup);
+    btnResumeContinue.addEventListener('click', resumeContinue);
+    btnResumeFresh.addEventListener('click', resumeFresh);
 
     // Difficulty buttons
-    difficultyButtons.addEventListener('click', (e) => {
-      const btn = e.target.closest('.diff-btn');
+    difficultyButtons.addEventListener('click', function (e) {
+      var btn = e.target.closest('.diff-btn');
       if (!btn) return;
-      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.diff-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       gameState.gridSize = parseInt(btn.dataset.size, 10);
     });
 
     // Window resize
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
+    var resizeTimeout;
+    window.addEventListener('resize', function () {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
+      resizeTimeout = setTimeout(function () {
         if (gameScreen.classList.contains('active') && gameState.currentState) {
           refreshGridDisplay();
         }
       }, 200);
     });
-
   }
 
   // --- Parse puzzle ID from URL ---
-  // Supports:  ?puzzle=<id>  AND  /puzzle/<id>  AND  #puzzle=<id>  (triple fallback)
   function getPuzzleIdFromUrl() {
     var qp = null;
     try {
@@ -134,7 +185,6 @@
     }
     if (qp && qp.trim()) return qp.trim();
 
-    // Path-based: /puzzle/<id> or /puzzle/<id>/
     var path = window.location.pathname.replace(/\/+$/, '');
     var parts = path.split('/');
     var pi = parts.indexOf('puzzle');
@@ -143,7 +193,6 @@
       if (pid && pid.trim()) return pid.trim();
     }
 
-    // Hash fallback: #puzzle=<id>
     var hash = window.location.hash;
     if (hash) {
       try {
@@ -158,17 +207,17 @@
 
   // --- Image Upload ---
   function handleImageSelect(e) {
-    const file = e.target.files[0];
+    var file = e.target.files[0];
     if (!file) return;
 
     gameState.imageFile = file;
     gameState.readonly = false;
     gameState.originalImageUrl = null;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var img = new Image();
+      img.onload = function () {
         gameState.imageElement = img;
         imagePreview.src = ev.target.result;
         imagePreview.style.display = 'block';
@@ -181,65 +230,111 @@
     reader.readAsDataURL(file);
   }
 
-  // --- Start Game ---
+  // --- Show loading-only mode for shared puzzles ---
+  function showSharedLoading() {
+    loadingShared.style.display = 'flex';
+    setupContent.style.display = 'none';
+    setupSubtitle.style.display = 'none';
+    btnStart.style.display = 'none';
+    resumePrompt.style.display = 'none';
+  }
+
+  function hideSharedLoading() {
+    loadingShared.style.display = 'none';
+    setupContent.style.display = '';
+    setupSubtitle.style.display = '';
+    btnStart.style.display = '';
+  }
+
+  // --- Start Game (user-uploaded image) ---
   function startGame() {
     if (!gameState.imageElement) return;
 
-    const gs = gameState.gridSize;
+    var gs = gameState.gridSize;
     gameState.hiddenTileNum = gs * gs - 1;
     gameState.moveCount = 0;
     gameState.elapsedSeconds = 0;
     gameState.timerStarted = false;
     gameState.completionSubmitted = false;
 
-    // Puzzle name from input (default if empty)
-    const nameVal = puzzleNameInput.value.trim();
+    var nameVal = puzzleNameInput.value.trim();
     gameState.puzzleName = nameVal || 'HuaRongImage';
 
-    // Cut image into tiles
     gameState.tileDataUrls = PuzzleEngine.cutImageToTiles(gameState.imageElement, gs);
-
-    // Create solved state and shuffle
     gameState.solvedState = PuzzleEngine.createSolvedState(gs);
-    const numMoves = gs * gs * 20;
-    const shuffled = PuzzleEngine.shuffleWithLegalMoves(gameState.solvedState, numMoves);
+    var numMoves = gs * gs * 20;
+    var shuffled = PuzzleEngine.shuffleWithLegalMoves(gameState.solvedState, numMoves);
 
     gameState.currentState = shuffled.state;
     gameState.emptyPos = shuffled.emptyPos;
     gameState.shuffleMoves = shuffled.moves;
     gameState.puzzleId = null;
 
-    // Switch screens FIRST
     setupScreen.classList.remove('active');
     gameScreen.classList.add('active');
     victoryOverlay.classList.remove('active');
 
-    // Display puzzle name
+    hideSharedLoading();
     puzzleNameDisplay.textContent = gameState.puzzleName;
-
-    // Render
     puzzleGrid.setAttribute('data-size', String(gs));
-    Renderer.renderGrid(
-      puzzleGrid,
-      gameState.currentState,
-      gameState.emptyPos,
-      gameState.tileDataUrls,
-      gameState.hiddenTileNum
-    );
+    Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
     Renderer.updateMoveCounter(0);
     Renderer.updateTimer(0);
     gameHint.textContent = '点击空格旁边的图块来移动';
+  }
 
-    // DO NOT start timer here — it starts on first move
+  // --- Restart Puzzle (clear progress + fetch fresh) ---
+  async function restartPuzzle() {
+    stopTimer();
+    Confetti.stop();
+    victoryOverlay.classList.remove('active');
+
+    if (gameState.puzzleId) {
+      clearProgress(gameState.puzzleId);
+
+      // Re-fetch from API to get fresh shuffle
+      gameState.moveCount = 0;
+      gameState.elapsedSeconds = 0;
+      gameState.timerStarted = false;
+      gameState.completionSubmitted = false;
+
+      try {
+        var data = await API.loadPuzzle(gameState.puzzleId);
+        gameState.shuffleMoves = data.moves;
+        gameState.hiddenTileNum = data.hiddenIndex;
+        gameState.solvedState = PuzzleEngine.createSolvedState(gameState.gridSize);
+        var reconstructed = PuzzleEngine.replayMoves(gameState.solvedState, data.moves);
+        gameState.currentState = reconstructed.state;
+        gameState.emptyPos = reconstructed.emptyPos;
+
+      } catch (err) {
+        // Fallback: re-shuffle client-side
+        var shuffled = PuzzleEngine.shuffleWithLegalMoves(gameState.solvedState, gameState.gridSize * gameState.gridSize * 20);
+        gameState.currentState = shuffled.state;
+        gameState.emptyPos = shuffled.emptyPos;
+        gameState.shuffleMoves = shuffled.moves;
+      }
+
+      gameScreen.classList.add('active');
+      setupScreen.classList.remove('active');
+      victoryOverlay.classList.remove('active');
+
+      puzzleGrid.setAttribute('data-size', String(gameState.gridSize));
+      Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
+      Renderer.updateMoveCounter(0);
+      Renderer.updateTimer(0);
+      gameHint.textContent = '点击空格旁边的图块来移动';
+
+      saveProgress();
+    }
   }
 
   // --- Load Shared Puzzle ---
   async function loadSharedPuzzle(puzzleId) {
-    loadingShared.style.display = 'flex';
-    btnStart.disabled = true;
+    showSharedLoading();
 
     try {
-      const data = await API.loadPuzzle(puzzleId);
+      var data = await API.loadPuzzle(puzzleId);
 
       gameState.gridSize = data.gridSize;
       gameState.hiddenTileNum = data.hiddenIndex;
@@ -254,72 +349,153 @@
       gameState.originalImageUrl = data.imageUrl;
 
       // Load the image
-      const img = new Image();
+      var img = new Image();
       img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
+      await new Promise(function (resolve, reject) {
         img.onload = resolve;
-        img.onerror = () => reject(new Error('Failed to load image'));
+        img.onerror = function () { reject(new Error('Failed to load image')); };
         img.src = data.imageUrl;
       });
 
       gameState.imageElement = img;
       gameState.imageFile = null;
 
-      // Cut and reconstruct
-      const gs = data.gridSize;
+      var gs = data.gridSize;
       gameState.tileDataUrls = PuzzleEngine.cutImageToTiles(img, gs);
       gameState.solvedState = PuzzleEngine.createSolvedState(gs);
 
-      const reconstructed = PuzzleEngine.replayMoves(gameState.solvedState, data.moves);
+      // Check for saved progress (only for this puzzleId)
+      var saved = loadProgress(puzzleId);
+
+      if (saved && saved.m > 0) {
+        // Progress exists — show resume prompt
+        var m = Math.floor(saved.t / 60);
+        var s = saved.t % 60;
+        var timeStr = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        resumeDetail.textContent = '已用 ' + timeStr + ' · 步数 ' + saved.m;
+        hideSharedLoading();
+        resumePrompt.style.display = 'block';
+        setupContent.style.display = 'none';
+        setupSubtitle.style.display = 'none';
+        btnStart.style.display = 'none';
+        document.querySelectorAll('.diff-btn').forEach(function (b) {
+          b.classList.toggle('active', parseInt(b.dataset.size, 10) === gs);
+        });
+        return;
+      }
+
+      // No saved progress — start fresh
+      var reconstructed = PuzzleEngine.replayMoves(gameState.solvedState, data.moves);
       gameState.currentState = reconstructed.state;
       gameState.emptyPos = reconstructed.emptyPos;
 
-      // Difficulty highlight
-      document.querySelectorAll('.diff-btn').forEach(b => {
+      document.querySelectorAll('.diff-btn').forEach(function (b) {
         b.classList.toggle('active', parseInt(b.dataset.size, 10) === gs);
       });
 
-      // Switch screens FIRST
       setupScreen.classList.remove('active');
       gameScreen.classList.add('active');
       victoryOverlay.classList.remove('active');
 
-      // Display puzzle name
+      hideSharedLoading();
       puzzleNameDisplay.textContent = gameState.puzzleName;
-
-      // Render
       puzzleGrid.setAttribute('data-size', String(gs));
-      Renderer.renderGrid(
-        puzzleGrid,
-        gameState.currentState,
-        gameState.emptyPos,
-        gameState.tileDataUrls,
-        gameState.hiddenTileNum
-      );
+      Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
       Renderer.updateMoveCounter(0);
       Renderer.updateTimer(0);
       gameHint.textContent = '点击空格旁边的图块来移动';
+
     } catch (err) {
+      hideSharedLoading();
       loadingShared.style.display = 'none';
-      btnStart.disabled = false;
       showToast('加载拼图失败: ' + err.message);
       window.history.replaceState({}, '', '/');
-    } finally {
-      loadingShared.style.display = 'none';
     }
+  }
+
+  // --- Resume progress ---
+  function resumeContinue() {
+    var saved = loadProgress(gameState.puzzleId);
+    if (!saved) {
+      // Fallback: start fresh
+      resumeFresh();
+      return;
+    }
+
+    gameState.currentState = saved.s;
+    gameState.emptyPos = saved.e;
+    gameState.moveCount = saved.m;
+    gameState.elapsedSeconds = saved.t;
+    gameState.timerStarted = saved.ts;
+    gameState.gridSize = saved.gs;
+    gameState.hiddenTileNum = saved.hn;
+    gameState.completionSubmitted = false;
+
+    var gs = saved.gs;
+    puzzleNameDisplay.textContent = gameState.puzzleName;
+
+    setupScreen.classList.remove('active');
+    gameScreen.classList.add('active');
+    victoryOverlay.classList.remove('active');
+
+    resumePrompt.style.display = 'none';
+    hideSharedLoading();
+
+    puzzleGrid.setAttribute('data-size', String(gs));
+    Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
+    Renderer.updateMoveCounter(gameState.moveCount);
+    Renderer.updateTimer(gameState.elapsedSeconds);
+
+    // If timer was running, resume it
+    if (gameState.timerStarted) {
+      gameState.startTime = Date.now() - gameState.elapsedSeconds * 1000;
+      stopTimer();
+      gameState.timerInterval = setInterval(function () {
+        gameState.elapsedSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+        Renderer.updateTimer(gameState.elapsedSeconds);
+        saveProgress(); // periodic save
+      }, 1000);
+    }
+
+    gameHint.textContent = '点击空格旁边的图块来移动';
+  }
+
+  function resumeFresh() {
+    clearProgress(gameState.puzzleId);
+
+    gameState.moveCount = 0;
+    gameState.elapsedSeconds = 0;
+    gameState.timerStarted = false;
+    gameState.completionSubmitted = false;
+
+    var gs = gameState.gridSize;
+    var reconstructed = PuzzleEngine.replayMoves(gameState.solvedState, gameState.shuffleMoves);
+    gameState.currentState = reconstructed.state;
+    gameState.emptyPos = reconstructed.emptyPos;
+
+    resumePrompt.style.display = 'none';
+    hideSharedLoading();
+
+    setupScreen.classList.remove('active');
+    gameScreen.classList.add('active');
+    victoryOverlay.classList.remove('active');
+
+    puzzleNameDisplay.textContent = gameState.puzzleName;
+    puzzleGrid.setAttribute('data-size', String(gs));
+    Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
+    Renderer.updateMoveCounter(0);
+    Renderer.updateTimer(0);
+    gameHint.textContent = '点击空格旁边的图块来移动';
   }
 
   // --- Tile Click Handler ---
   function handleTileClick(row, col) {
     if (gameState.isAnimating) return;
 
-    const { emptyPos, currentState } = gameState;
-
-    if (!PuzzleEngine.isTileAdjacent(row, col, emptyPos.row, emptyPos.col)) {
+    if (!PuzzleEngine.isTileAdjacent(row, col, gameState.emptyPos.row, gameState.emptyPos.col)) {
       return;
     }
 
-    // Start timer on first move
     if (!gameState.timerStarted) {
       startTimer();
       gameState.timerStarted = true;
@@ -329,16 +505,19 @@
 
     gameState.currentState = PuzzleEngine.moveTile(
       gameState.currentState,
-      { row, col },
-      emptyPos
+      { row: row, col: col },
+      gameState.emptyPos
     );
-    gameState.emptyPos = { row, col };
+    gameState.emptyPos = { row: row, col: col };
     gameState.moveCount++;
 
     Renderer.updateTilePositions(gameState.currentState, gameState.emptyPos);
     Renderer.updateMoveCounter(gameState.moveCount);
 
-    setTimeout(() => {
+    // Save progress to localStorage
+    saveProgress();
+
+    setTimeout(function () {
       gameState.isAnimating = false;
 
       if (PuzzleEngine.checkWin(gameState.currentState, gameState.solvedState)) {
@@ -350,22 +529,22 @@
   // --- Victory ---
   function handleVictory() {
     stopTimer();
+    // Clear saved progress on victory
+    if (gameState.puzzleId) clearProgress(gameState.puzzleId);
 
     Renderer.revealHiddenTile(gameState.currentState, gameState.emptyPos);
     Renderer.lockTiles();
     gameHint.textContent = '';
 
-    setTimeout(() => {
+    setTimeout(function () {
       victoryTime.textContent = formatTime(gameState.elapsedSeconds);
       victoryMoves.textContent = String(gameState.moveCount);
 
-      // Show completed image (use the original imageElement src)
       if (gameState.imageElement) {
         victoryCompletedImage.src = gameState.imageElement.src;
         victoryCompletedImage.style.display = 'block';
       }
 
-      // Reset completion UI
       playerNameInput.value = '';
       victoryNameSection.style.display = 'block';
       btnSubmitScore.style.display = 'inline-block';
@@ -380,33 +559,25 @@
   async function submitScore() {
     if (gameState.completionSubmitted) return;
 
-    const playerName = playerNameInput.value.trim() || '匿名玩家';
+    var playerName = playerNameInput.value.trim() || '匿名玩家';
 
     if (!gameState.puzzleId) {
-      // Need to save the puzzle first before recording completion
       try {
         if (!gameState.imageFile && gameState.readonly) {
           showToast('无法提交成绩：拼图信息缺失');
           return;
         }
-
         if (!gameState.imageFile) {
-          const response = await fetch(gameState.originalImageUrl);
-          const blob = await response.blob();
+          var response = await fetch(gameState.originalImageUrl);
+          var blob = await response.blob();
           gameState.imageFile = new File([blob], 'puzzle-image.jpg', { type: blob.type });
         }
-
-        const result = await API.savePuzzle(
-          gameState.imageFile,
-          gameState.gridSize,
-          gameState.shuffleMoves,
-          gameState.hiddenTileNum,
-          gameState.puzzleName
+        var result = await API.savePuzzle(
+          gameState.imageFile, gameState.gridSize, gameState.shuffleMoves,
+          gameState.hiddenTileNum, gameState.puzzleName
         );
         gameState.puzzleId = result.puzzleId;
-
-        // Also update the URL
-        window.history.replaceState({}, '', `/?puzzle=${result.puzzleId}`);
+        window.history.replaceState({}, '', '/?puzzle=' + result.puzzleId);
       } catch (err) {
         showToast('提交失败: ' + err.message);
         return;
@@ -417,12 +588,7 @@
     btnSubmitScore.textContent = '⏳ 提交中...';
 
     try {
-      await API.saveCompletion(
-        gameState.puzzleId,
-        playerName,
-        gameState.elapsedSeconds,
-        gameState.moveCount
-      );
+      await API.saveCompletion(gameState.puzzleId, playerName, gameState.elapsedSeconds, gameState.moveCount);
       gameState.completionSubmitted = true;
       victoryNameSection.style.display = 'none';
       btnSubmitScore.style.display = 'none';
@@ -441,7 +607,7 @@
       showToast('请先分享拼图后再查看排行榜');
       return;
     }
-    window.open(`/leaderboard.html?puzzle=${gameState.puzzleId}`, '_blank');
+    window.open('/leaderboard.html?puzzle=' + gameState.puzzleId, '_blank');
   }
 
   // --- Timer ---
@@ -451,7 +617,7 @@
     gameState.elapsedSeconds = 0;
     Renderer.updateTimer(0);
 
-    gameState.timerInterval = setInterval(() => {
+    gameState.timerInterval = setInterval(function () {
       gameState.elapsedSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
       Renderer.updateTimer(gameState.elapsedSeconds);
     }, 500);
@@ -465,21 +631,18 @@
   }
 
   function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
   // --- Clipboard (polyfill for older browsers / Baidu etc.) ---
   function copyToClipboard(text) {
-    // Method 1: Modern async clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text).catch(function () {
-        // If it fails, try fallback
         return copyWithExecCommand(text);
       });
     }
-    // Method 2: Legacy execCommand fallback
     return copyWithExecCommand(text);
   }
 
@@ -487,17 +650,13 @@
     return new Promise(function (resolve, reject) {
       var textarea = document.createElement('textarea');
       textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '0';
-      textarea.style.left = '0';
-      textarea.style.width = '2em';
-      textarea.style.height = '2em';
+      textarea.style.position = 'fixed'; textarea.style.top = '0'; textarea.style.left = '0';
+      textarea.style.width = '2em'; textarea.style.height = '2em';
       textarea.style.opacity = '0';
       textarea.style.pointerEvents = 'none';
       textarea.setAttribute('readonly', '');
       document.body.appendChild(textarea);
 
-      // iOS needs contentEditable + range selection
       if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         textarea.contentEditable = 'true';
         textarea.readOnly = false;
@@ -513,18 +672,10 @@
       }
 
       var ok = false;
-      try {
-        ok = document.execCommand('copy');
-      } catch (e) {
-        // ignore
-      }
+      try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ }
       document.body.removeChild(textarea);
-
-      if (ok) {
-        resolve();
-      } else {
-        reject(new Error('execCommand failed'));
-      }
+      if (ok) resolve();
+      else reject(new Error('execCommand failed'));
     });
   }
 
@@ -534,47 +685,41 @@
     btnShare.textContent = '⏳ ...';
 
     try {
-      let puzzleId = gameState.puzzleId;
+      var puzzleId = gameState.puzzleId;
 
       if (!puzzleId) {
         if (!gameState.imageFile && gameState.readonly) {
           showToast('此拼图已可分享，请复制当前页面链接');
           return;
         }
-
         if (!gameState.imageFile) {
-          const response = await fetch(gameState.originalImageUrl);
-          const blob = await response.blob();
+          var response = await fetch(gameState.originalImageUrl);
+          var blob = await response.blob();
           gameState.imageFile = new File([blob], 'puzzle-image.jpg', { type: blob.type });
         }
-
-        const result = await API.savePuzzle(
-          gameState.imageFile,
-          gameState.gridSize,
-          gameState.shuffleMoves,
-          gameState.hiddenTileNum,
-          gameState.puzzleName
+        var result = await API.savePuzzle(
+          gameState.imageFile, gameState.gridSize, gameState.shuffleMoves,
+          gameState.hiddenTileNum, gameState.puzzleName
         );
         puzzleId = result.puzzleId;
         gameState.puzzleId = puzzleId;
       }
 
-      const shareUrl = `${window.location.origin}/?puzzle=${puzzleId}`;
+      var shareUrl = window.location.origin + '/?puzzle=' + puzzleId;
 
       try {
         await copyToClipboard(shareUrl);
         showToast('✅ 分享链接已复制到剪贴板！');
-      } catch (_clipErr) {
-        // Clipboard failed entirely — show URL so user can long-press copy
+      } catch (clipErr) {
         showToast('📋 请手动复制: ' + shareUrl, 8000);
       }
 
-      window.history.replaceState({}, '', `/?puzzle=${puzzleId}`);
+      window.history.replaceState({}, '', '/?puzzle=' + puzzleId);
     } catch (err) {
       showToast('分享失败: ' + err.message);
     } finally {
       btnShare.disabled = false;
-      btnShare.textContent = '🔗 分享';
+      btnShare.textContent = '🔗';
     }
   }
 
@@ -589,6 +734,8 @@
 
     window.history.replaceState({}, '', '/');
 
+    hideSharedLoading();
+    resumePrompt.style.display = 'none';
     gameState.currentState = null;
     gameState.solvedState = null;
     gameState.tileDataUrls = [];
@@ -603,11 +750,8 @@
     }
   }
 
-  // --- Navigate to Setup (for "I want to create a puzzle" button) ---
   function goToSetup() {
-    if (gameScreen.classList.contains('active')) {
-      stopTimer();
-    }
+    if (gameScreen.classList.contains('active')) stopTimer();
     Confetti.stop();
     victoryOverlay.classList.remove('active');
     gameScreen.classList.remove('active');
@@ -616,6 +760,8 @@
 
     window.history.replaceState({}, '', '/');
 
+    hideSharedLoading();
+    resumePrompt.style.display = 'none';
     gameState.currentState = null;
     gameState.solvedState = null;
     gameState.tileDataUrls = [];
@@ -630,13 +776,7 @@
   function refreshGridDisplay() {
     if (!gameState.currentState) return;
     puzzleGrid.setAttribute('data-size', String(gameState.gridSize));
-    Renderer.renderGrid(
-      puzzleGrid,
-      gameState.currentState,
-      gameState.emptyPos,
-      gameState.tileDataUrls,
-      gameState.hiddenTileNum
-    );
+    Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
     Renderer.updateMoveCounter(gameState.moveCount);
     Renderer.updateTimer(gameState.elapsedSeconds);
 
@@ -647,20 +787,19 @@
   }
 
   // --- Toast ---
-  let toastTimeout;
+  var toastTimeout;
 
   function showToast(msg, duration) {
     toastMsg.textContent = msg;
     toast.classList.add('show');
     clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
+    toastTimeout = setTimeout(function () {
       toast.classList.remove('show');
     }, duration || 3000);
   }
 
-  // --- Boot (readyState check: safe on slow mobile Browsers) ---
+  // --- Boot (readyState check: safe on slow mobile browsers) ---
   function boot() {
-    // Rare: on extremely slow devices scripts may not have all loaded yet
     if (!window.PuzzleEngine || !window.API || !window.Renderer || !window.Confetti) {
       setTimeout(boot, 100);
       return;

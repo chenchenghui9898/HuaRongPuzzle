@@ -110,11 +110,14 @@ app.get('/api/puzzles/:id', async (req, res) => {
         if (updateErr) console.error('Failed to update last_opened_at:', updateErr.message);
       });
 
+    // Generate a fresh random shuffle each time the puzzle is opened
+    const freshMoves = generateRandomShuffle(puzzle.grid_size);
+
     res.json({
       puzzleId: puzzle.id,
       imageUrl: puzzle.image_url,
       gridSize: puzzle.grid_size,
-      moves: typeof puzzle.moves === 'string' ? JSON.parse(puzzle.moves) : puzzle.moves,
+      moves: freshMoves,
       hiddenIndex: puzzle.hidden_index,
       name: puzzle.name || 'HuaRongImage',
       createdAt: puzzle.created_at,
@@ -222,6 +225,46 @@ app.use((err, req, res, _next) => {
   }
   res.status(500).json({ error: err.message });
 });
+
+// ====================================================================
+// Fresh shuffle generator — each load gets a different shuffle
+// ====================================================================
+
+function generateRandomShuffle(gridSize) {
+  var gs = gridSize;
+  var n = gs * gs;
+  var emptyRow = gs - 1;
+  var emptyCol = gs - 1;
+  var lastFromRow = null;
+  var lastFromCol = null;
+  var moves = [];
+  var numMoves = n * 20;
+
+  for (var i = 0; i < numMoves; i++) {
+    var candidates = [];
+    if (emptyRow > 0 && !(emptyRow - 1 === lastFromRow && emptyCol === lastFromCol))
+      candidates.push({ row: emptyRow - 1, col: emptyCol });
+    if (emptyRow < gs - 1 && !(emptyRow + 1 === lastFromRow && emptyCol === lastFromCol))
+      candidates.push({ row: emptyRow + 1, col: emptyCol });
+    if (emptyCol > 0 && !(emptyRow === lastFromRow && emptyCol - 1 === lastFromCol))
+      candidates.push({ row: emptyRow, col: emptyCol - 1 });
+    if (emptyCol < gs - 1 && !(emptyRow === lastFromRow && emptyCol + 1 === lastFromCol))
+      candidates.push({ row: emptyRow, col: emptyCol + 1 });
+
+    if (candidates.length === 0) break;
+
+    var chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    moves.push({
+      from: { row: chosen.row, col: chosen.col },
+      to: { row: emptyRow, col: emptyCol }
+    });
+    lastFromRow = emptyRow;
+    lastFromCol = emptyCol;
+    emptyRow = chosen.row;
+    emptyCol = chosen.col;
+  }
+  return moves;
+}
 
 // ====================================================================
 // Cleanup logic (shared between local cron and Vercel cron)
