@@ -49,7 +49,13 @@ window.PuzzleEngine = (function () {
           col * tileW, row * tileH, tileW, tileH, // source rect
           0, 0, tileW, tileH                        // dest rect
         );
-        tiles.push(tileCanvas.toDataURL('image/jpeg', 0.92));
+        try {
+          tiles.push(tileCanvas.toDataURL('image/jpeg', 0.92));
+        } catch (e) {
+          // Canvas tainted (cross-origin image without CORS) — should not happen
+          // since we now load images as data URLs, but kept as safety net
+          throw new Error('图片处理受限，请刷新后重试');
+        }
       }
     }
     return tiles;

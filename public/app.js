@@ -346,6 +346,16 @@
   async function loadSharedPuzzle(puzzleId) {
     showSharedLoading();
 
+    // Safety timeout: if the load hangs (slow network/deadlocked promise),
+    // revert to setup screen after 20 seconds.
+    var loadTimeout = setTimeout(function () {
+      if (loadingShared.style.display !== 'none') {
+        hideSharedLoading();
+        showToast('加载超时，请检查网络后刷新重试');
+        window.history.replaceState({}, '', '/');
+      }
+    }, 20000);
+
     try {
       var data = await API.loadPuzzle(puzzleId);
 
@@ -361,13 +371,22 @@
       gameState.readonly = true;
       gameState.originalImageUrl = data.imageUrl;
 
-      // Load the image
+      // Fetch image via blob → data URL to avoid Canvas CORS taint on old WebViews
+      var resp = await fetch(data.imageUrl);
+      if (!resp.ok) throw new Error('图片加载失败 HTTP ' + resp.status);
+      var blob = await resp.blob();
+      var dataUrl = await new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { reject(new Error('图片读取失败')); };
+        reader.readAsDataURL(blob);
+      });
+
       var img = new Image();
-      img.crossOrigin = 'anonymous';
       await new Promise(function (resolve, reject) {
         img.onload = resolve;
-        img.onerror = function () { reject(new Error('Failed to load image')); };
-        img.src = data.imageUrl;
+        img.onerror = function () { reject(new Error('图片解码失败')); };
+        img.src = dataUrl;
       });
 
       gameState.imageElement = img;
@@ -420,9 +439,11 @@
 
     } catch (err) {
       hideSharedLoading();
-      loadingShared.style.display = 'none';
-      showToast('加载拼图失败: ' + err.message);
+      showToast('加载拼图失败: ' + (err && err.message ? err.message : '未知错误'));
       window.history.replaceState({}, '', '/');
+    } finally {
+      clearTimeout(loadTimeout);
+      loadingShared.style.display = 'none';
     }
   }
 
