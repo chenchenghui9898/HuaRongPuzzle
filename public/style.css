@@ -54,6 +54,15 @@ button, .tile, .upload-area, input[type="text"] {
   gap: 28px;
 }
 
+/* Transparent flex wrapper for setup content — carries the same gap as parent */
+#setup-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
 .title {
   font-size: 2.2rem;
   font-weight: 800;
@@ -724,6 +733,10 @@ button, .tile, .upload-area, input[type="text"] {
     border-radius: 20px;
   }
 
+  #setup-content {
+    gap: 20px;
+  }
+
   .title {
     font-size: 1.5rem;
   }
@@ -873,6 +886,10 @@ button, .tile, .upload-area, input[type="text"] {
     padding: 20px 12px;
     gap: 16px;
     border-radius: 16px;
+  }
+
+  #setup-content {
+    gap: 16px;
   }
 
   .title {
