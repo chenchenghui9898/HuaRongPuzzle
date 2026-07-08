@@ -116,12 +116,44 @@
       }, 200);
     });
 
-    // Load shared puzzle from URL
-    const params = new URLSearchParams(window.location.search);
-    const puzzleId = params.get('puzzle');
-    if (puzzleId) {
-      loadSharedPuzzle(puzzleId);
+  }
+
+  // --- Parse puzzle ID from URL ---
+  // Supports:  ?puzzle=<id>  AND  /puzzle/<id>  AND  #puzzle=<id>  (triple fallback)
+  function getPuzzleIdFromUrl() {
+    var qp = null;
+    try {
+      qp = new URLSearchParams(window.location.search).get('puzzle');
+    } catch (e) {
+      var raw = window.location.search.replace(/^\?/, '');
+      var pairs = raw.split('&');
+      for (var i = 0; i < pairs.length; i++) {
+        var kv = pairs[i].split('=');
+        if (decodeURIComponent(kv[0]) === 'puzzle') qp = decodeURIComponent(kv[1] || '');
+      }
     }
+    if (qp && qp.trim()) return qp.trim();
+
+    // Path-based: /puzzle/<id> or /puzzle/<id>/
+    var path = window.location.pathname.replace(/\/+$/, '');
+    var parts = path.split('/');
+    var pi = parts.indexOf('puzzle');
+    if (pi >= 0 && pi + 1 < parts.length) {
+      var pid = parts[pi + 1];
+      if (pid && pid.trim()) return pid.trim();
+    }
+
+    // Hash fallback: #puzzle=<id>
+    var hash = window.location.hash;
+    if (hash) {
+      try {
+        var hp = new URLSearchParams(hash.replace(/^#/, ''));
+        var hid = hp.get('puzzle');
+        if (hid && hid.trim()) return hid.trim();
+      } catch (e) {}
+    }
+
+    return null;
   }
 
   // --- Image Upload ---
@@ -626,6 +658,23 @@
     }, duration || 3000);
   }
 
-  // --- Boot ---
-  document.addEventListener('DOMContentLoaded', init);
+  // --- Boot (readyState check: safe on slow mobile Browsers) ---
+  function boot() {
+    // Rare: on extremely slow devices scripts may not have all loaded yet
+    if (!window.PuzzleEngine || !window.API || !window.Renderer || !window.Confetti) {
+      setTimeout(boot, 100);
+      return;
+    }
+    init();
+    var puzzleId = getPuzzleIdFromUrl();
+    if (puzzleId) {
+      loadSharedPuzzle(puzzleId);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
 })();
