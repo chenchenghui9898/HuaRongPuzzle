@@ -12,48 +12,67 @@ window.PuzzleEngine = (function () {
    * @returns {string[]} Array of data URLs, length = gridSize²
    */
   function cutImageToTiles(imageElement, gridSize) {
-    const naturalW = imageElement.naturalWidth;
-    const naturalH = imageElement.naturalHeight;
+    var natW = imageElement.naturalWidth;
+    var natH = imageElement.naturalHeight;
 
-    // Resize large images to avoid performance issues
-    const maxDim = 1200;
-    let drawW = naturalW;
-    let drawH = naturalH;
-    if (Math.max(drawW, drawH) > maxDim) {
-      const ratio = maxDim / Math.max(drawW, drawH);
-      drawW = Math.round(drawW * ratio);
-      drawH = Math.round(drawH * ratio);
+    // --- Step 1: Scale to working size (max 1200px on the long side) ---
+    var maxDim = 1200;
+    var scaleW = natW;
+    var scaleH = natH;
+    if (Math.max(scaleW, scaleH) > maxDim) {
+      var ratio = maxDim / Math.max(scaleW, scaleH);
+      scaleW = Math.round(scaleW * ratio);
+      scaleH = Math.round(scaleH * ratio);
     }
 
-    const tileW = Math.floor(drawW / gridSize);
-    const tileH = Math.floor(drawH / gridSize);
-    const canvasW = tileW * gridSize;
-    const canvasH = tileH * gridSize;
+    // --- Step 2: Square canvas size = tileW * gridSize ---
+    // Pick a tile size that looks good: use the short side of the working image
+    // as the basis so no part is too small.
+    var squareSize = Math.min(scaleW, scaleH);
+    // Round to a pixel count that divides cleanly by gridSize
+    squareSize = Math.floor(squareSize / gridSize) * gridSize;
+    // Minimum 300×300 to avoid tiny tiles
+    if (squareSize < 300) squareSize = 300;
 
-    // Draw the full image at working size
-    const offCanvas = document.createElement('canvas');
-    offCanvas.width = canvasW;
-    offCanvas.height = canvasH;
-    const offCtx = offCanvas.getContext('2d');
-    offCtx.drawImage(imageElement, 0, 0, canvasW, canvasH);
+    var tileW = Math.floor(squareSize / gridSize);
+    var tileH = Math.floor(squareSize / gridSize);
 
-    const tiles = [];
-    for (let row = 0; row < gridSize; row++) {
-      for (let col = 0; col < gridSize; col++) {
-        const tileCanvas = document.createElement('canvas');
+    // --- Step 3: Cover crop — scale image to fill the square, center-crop ---
+    // Calculate scale factor: use the LARGER side-to-square ratio (cover)
+    var coverScale = Math.max(squareSize / scaleW, squareSize / scaleH);
+    var drawW = Math.round(scaleW * coverScale);
+    var drawH = Math.round(scaleH * coverScale);
+
+    // Center the drawn image on the square canvas
+    var offsetX = Math.floor((squareSize - drawW) / 2);
+    var offsetY = Math.floor((squareSize - drawH) / 2);
+
+    var offCanvas = document.createElement('canvas');
+    offCanvas.width = squareSize;
+    offCanvas.height = squareSize;
+    var offCtx = offCanvas.getContext('2d');
+    // Fill with dark background (will show in gaps if any rounding leaves 1px)
+    offCtx.fillStyle = '#111';
+    offCtx.fillRect(0, 0, squareSize, squareSize);
+    // Draw image centered and scaled to cover
+    offCtx.drawImage(imageElement, offsetX, offsetY, drawW, drawH);
+
+    // --- Step 4: Slice into tiles ---
+    var tiles = [];
+    for (var row = 0; row < gridSize; row++) {
+      for (var col = 0; col < gridSize; col++) {
+        var tileCanvas = document.createElement('canvas');
         tileCanvas.width = tileW;
         tileCanvas.height = tileH;
-        const tileCtx = tileCanvas.getContext('2d');
+        var tileCtx = tileCanvas.getContext('2d');
         tileCtx.drawImage(
           offCanvas,
-          col * tileW, row * tileH, tileW, tileH, // source rect
-          0, 0, tileW, tileH                        // dest rect
+          col * tileW, row * tileH, tileW, tileH,
+          0, 0, tileW, tileH
         );
         try {
           tiles.push(tileCanvas.toDataURL('image/jpeg', 0.92));
         } catch (e) {
-          // Canvas tainted (cross-origin image without CORS) — should not happen
-          // since we now load images as data URLs, but kept as safety net
           throw new Error('图片处理受限，请刷新后重试');
         }
       }
