@@ -17,6 +17,15 @@ cloudinary.config({
 // --- Middleware ---
 app.use(express.json());
 
+// CORS — allow all origins in development
+app.use(function (req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // Multer: memory storage (buffer → Cloudinary, no local files)
 const upload = multer({
   storage: multer.memoryStorage(),

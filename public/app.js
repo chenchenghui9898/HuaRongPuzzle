@@ -442,8 +442,13 @@
     } catch (err) {
       dbg('dbg-status', 'error: ' + (err && err.message ? err.message : 'unknown'), '#f66');
       hideSharedLoading();
-      showToast('加载拼图失败: ' + (err && err.message ? err.message : '未知错误'));
-      window.history.replaceState({}, '', '/');
+      // Show retry UI instead of silently redirecting
+      loadingShared.style.display = 'none';
+      loadingShared.innerHTML = '<div style="text-align:center;color:#f66;padding:8px;"><p style="margin-bottom:12px;">⚠ ' + (err && err.message ? err.message : '加载失败') + '</p><button id="btn-retry-load" style="padding:8px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.1);color:#ddd;font-size:0.9rem;cursor:pointer;">🔄 重新加载</button></div>';
+      loadingShared.style.display = 'flex';
+      document.getElementById('btn-retry-load').addEventListener('click', function () {
+        loadSharedPuzzle(puzzleId);
+      });
     } finally {
       clearTimeout(loadTimeout);
       loadingShared.style.display = 'none';
