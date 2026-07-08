@@ -607,7 +607,8 @@
       showToast('请先分享拼图后再查看排行榜');
       return;
     }
-    window.open('/leaderboard.html?puzzle=' + gameState.puzzleId, '_blank');
+    saveProgress();
+    window.location.href = '/leaderboard.html?puzzle=' + gameState.puzzleId;
   }
 
   // --- Timer ---

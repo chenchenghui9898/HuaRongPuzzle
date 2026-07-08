@@ -184,7 +184,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <a href="/" class="back-btn">← 返回游戏</a>
+      <a id="back-link" href="/" class="back-btn">← 返回拼图</a>
       <h1 class="title">🏆 完成排行榜</h1>
       <button class="refresh-btn" id="refresh-btn">🔄 刷新</button>
     </div>
@@ -241,7 +241,11 @@
       }
 
       // Load puzzle name, then load leaderboard
+      var puzzleName = puzzleId; // fallback
       async function init() {
+        // Set back link to return to the puzzle page
+        document.getElementById('back-link').href = '/?puzzle=' + encodeURIComponent(puzzleId);
+
         try {
           const puzzleData = await window.API.loadPuzzle(puzzleId);
           puzzleName = puzzleData.name || 'HuaRongImage';
