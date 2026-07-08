@@ -81,9 +81,11 @@
 
   function saveProgress() {
     if (!gameState.puzzleId || !gameState.currentState) return;
+    // Never cache a completed puzzle
+    if (gameState.solvedState && PuzzleEngine.checkWin(gameState.currentState, gameState.solvedState)) return;
     try {
       var data = {
-        s: gameState.currentState,       // 2D array
+        s: gameState.currentState,
         e: gameState.emptyPos,
         t: gameState.elapsedSeconds,
         m: gameState.moveCount,
@@ -113,6 +115,17 @@
     try {
       localStorage.removeItem(progressKey(pid));
     } catch (e) { /* ignore */ }
+  }
+
+  // Check if the saved state is already solved (don't resume completed puzzles)
+  function isSolvedSaved(saved, solvedState) {
+    if (!saved.s || !solvedState) return false;
+    for (var r = 0; r < saved.s.length; r++) {
+      for (var c = 0; c < saved.s[r].length; c++) {
+        if (saved.s[r][c] !== solvedState[r][c]) return false;
+      }
+    }
+    return true;
   }
 
   // --- Initialize ---
@@ -367,7 +380,7 @@
       // Check for saved progress (only for this puzzleId)
       var saved = loadProgress(puzzleId);
 
-      if (saved && saved.m > 0) {
+      if (saved && saved.m > 0 && !isSolvedSaved(saved, gameState.solvedState)) {
         // Progress exists — show resume prompt
         var m = Math.floor(saved.t / 60);
         var s = saved.t % 60;
