@@ -327,12 +327,20 @@
   function startGame() {
     if (!gameState.imageElement) return;
 
-    var gs = gameState.gridSize;
-    gameState.hiddenTileNum = gs * gs - 1;
+    // Self-defense: discard any stale shared-puzzle state
+    gameState.readonly = false;
+    gameState.puzzleId = null;
     gameState.moveCount = 0;
     gameState.elapsedSeconds = 0;
     gameState.timerStarted = false;
     gameState.completionSubmitted = false;
+    gameState.currentState = null;
+    gameState.solvedState = null;
+    gameState.tileDataUrls = [];
+    gameState.emptyPos = null;
+
+    var gs = gameState.gridSize;
+    gameState.hiddenTileNum = gs * gs - 1;
 
     var nameVal = puzzleNameInput.value.trim();
     gameState.puzzleName = nameVal || 'HuaRongImage';
@@ -853,10 +861,17 @@
     gameState.puzzleId = null;
     gameState.timerStarted = false;
     gameState.completionSubmitted = false;
-
-    if (!gameState.readonly && gameState.imageElement) {
-      btnStart.disabled = false;
-    }
+    // Discard stale state from shared puzzle
+    gameState.imageElement = null;
+    gameState.imageFile = null;
+    gameState.readonly = false;
+    gameState.originalImageUrl = null;
+    btnStart.disabled = true;
+    imagePreview.src = '';
+    imagePreview.style.display = 'none';
+    uploadPlaceholder.style.display = '';
+    uploadArea.classList.remove('has-image');
+    puzzleNameInput.value = '';
   }
 
   function goToSetup() {
@@ -879,6 +894,21 @@
     gameState.puzzleId = null;
     gameState.timerStarted = false;
     gameState.completionSubmitted = false;
+    // Discard stale image from shared puzzle
+    gameState.imageElement = null;
+    gameState.imageFile = null;
+    gameState.readonly = false;
+    gameState.originalImageUrl = null;
+    gameState.gridSize = parseInt(
+      (document.querySelector('.diff-btn.active') || {}).dataset?.size || '4', 10
+    ) || 4;
+    btnStart.disabled = true;
+    // Reset upload area to empty state
+    imagePreview.src = '';
+    imagePreview.style.display = 'none';
+    uploadPlaceholder.style.display = '';
+    uploadArea.classList.remove('has-image');
+    puzzleNameInput.value = '';
   }
 
   // --- Refresh grid on resize ---
