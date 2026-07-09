@@ -31,11 +31,11 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png'];
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPG and PNG images are allowed'));
+      cb(new Error('仅支持 JPG、PNG、WebP 格式的图片'));
     }
   },
 });
@@ -229,7 +229,7 @@ app.use((err, req, res, _next) => {
     }
     return res.status(400).json({ error: err.message });
   }
-  if (err.message === 'Only JPG and PNG images are allowed') {
+  if (err.message === 'Only JPG and PNG images are allowed' || err.message === '仅支持 JPG、PNG、WebP 格式的图片') {
     return res.status(400).json({ error: err.message });
   }
   res.status(500).json({ error: err.message });
