@@ -361,7 +361,9 @@ button, .tile, .upload-area, input[type="text"] {
 
 /* Full-width create puzzle button — matches game board width */
 .btn-create-puzzle-full {
+  display: block;
   width: min(80vw, 80vh, 500px);
+  margin: 0 auto;
   padding: 10px 16px;
   border: 1px solid rgba(240, 147, 251, 0.3);
   border-radius: 10px;

@@ -69,7 +69,6 @@
   <!-- ===== Game Screen ===== -->
   <section id="game-screen" class="screen">
     <div class="game-header">
-      <button class="btn-create-puzzle-full" id="btn-create-puzzle-game">🧩 制作我的拼图</button>
       <div class="game-header-row">
         <button class="btn-back" id="btn-back">← 返回</button>
         <div class="game-stats">
@@ -82,6 +81,7 @@
           <button class="btn-share" id="btn-share" title="分享此拼图">🔗 分享</button>
         </div>
       </div>
+      <button class="btn-create-puzzle-full" id="btn-create-puzzle-game">🧩 制作我的拼图</button>
     </div>
 
     <p class="puzzle-name-display" id="puzzle-name-display"></p>
@@ -152,8 +152,9 @@
     <div>pathname: <span id="dbg-path">-</span></div>
     <div>matched: <span id="dbg-match">-</span></div>
     <div>puzzleId: <span id="dbg-pid">-</span></div>
-    <div>api call: <span id="dbg-call">-</span></div>
+    <div>fetch URL: <span id="dbg-url">-</span></div>
     <div>api status: <span id="dbg-status">-</span></div>
+    <div>retries: <span id="dbg-retry">-</span></div>
   </div>
 
   <!-- Scripts (order matters: engine → api → renderer → confetti → app) -->

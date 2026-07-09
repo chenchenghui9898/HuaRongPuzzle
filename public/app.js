@@ -431,9 +431,9 @@
 
     try {
       var data = await API.loadPuzzle(puzzleId);
-      dbg('dbg-call', 'GET /api/puzzles/' + puzzleId);
       dbg('dbg-status', '200 OK', '#0f0');
       dbg('dbg-pid', data.puzzleId, '#0f0');
+      dbg('dbg-retry', '0');
 
       gameState.gridSize = data.gridSize;
       gameState.hiddenTileNum = data.hiddenIndex;
@@ -997,12 +997,18 @@
     debugBall.style.display = 'flex';
   });
 
-  function populateDebug(path, matched, pid, called, status) {
+  function populateDebug(path, matched, pid) {
     dbg('dbg-path', path);
     dbg('dbg-match', matched ? 'YES ✓' : 'NO ✗', matched ? '#0f0' : '#f66');
     dbg('dbg-pid', pid || '(null)', pid ? '#0f0' : '#f66');
-    dbg('dbg-call', called, '#ff0');
-    dbg('dbg-status', status, status === '200 OK' ? '#0f0' : (status.indexOf('err') >= 0 ? '#f66' : '#ff0'));
+    if (pid) {
+      var url = window.API._lastUrl ? window.API._lastUrl : (window.location.origin + '/api/puzzles/' + pid);
+      dbg('dbg-url', url, '#ff0');
+    } else {
+      dbg('dbg-url', '-');
+    }
+    dbg('dbg-status', pid ? 'loading…' : 'no puzzleId in URL', pid ? '#ff0' : '#f66');
+    dbg('dbg-retry', '-');
   }
 
   // --- Boot (readyState check: safe on slow mobile browsers) ---
@@ -1015,9 +1021,7 @@
     var puzzleId = getPuzzleIdFromUrl();
 
     // Populate debug immediately
-    var path = window.location.pathname;
-    var matched = puzzleId !== null;
-    populateDebug(path, matched, puzzleId, puzzleId ? 'GET /api/puzzles/' + puzzleId : 'pending', puzzleId ? 'loading…' : 'no puzzleId in URL');
+    populateDebug(window.location.pathname, puzzleId !== null, puzzleId);
 
     if (puzzleId) {
       loadSharedPuzzle(puzzleId);

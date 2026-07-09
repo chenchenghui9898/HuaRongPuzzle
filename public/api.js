@@ -2,58 +2,112 @@
  * API Client — Thin fetch wrappers for backend communication.
  * All requests use absolute URLs to avoid path resolution issues on mobile.
  * Retries up to 3 times with 2s delay on network errors.
+ * XHR fallback if fetch itself is unavailable or blocked.
  */
 window.API = (function () {
-  var BASE = '';
-
-  function initBase() {
-    if (BASE) return BASE;
-    try {
-      BASE = window.location.origin;
-    } catch (e) {
-      BASE = '';
-    }
-    return BASE;
+  // --- Safe logging (console might be blocked on some browsers) ---
+  function safeLog(msg) {
+    try { if (window.console && window.console.log) window.console.log(msg); } catch (e) {}
   }
 
-  /**
-   * Fetch with retry on network failure.
-   * @param {string} url — absolute URL
-   * @param {object} opts — fetch options
-   * @param {number} maxRetries — max retry count (default 3)
-   * @returns {Promise<Response>}
-   */
-  async function fetchWithRetry(url, opts, maxRetries) {
+  // --- Base URL (with origin fallback for old browsers) ---
+  function getOrigin() {
+    try {
+      if (window.location.origin) return window.location.origin;
+    } catch (e) {}
+    // Fallback: build origin from protocol + host
+    var port = window.location.port ? ':' + window.location.port : '';
+    return window.location.protocol + '//' + window.location.hostname + port;
+  }
+
+  function apiUrl(path) {
+    return getOrigin() + '/api' + path;
+  }
+
+  // --- fetch() wrapper with robust retry ---
+  function fetchWithRetry(url, opts, maxRetries) {
     maxRetries = maxRetries || 3;
     var lastErr;
 
-    for (var attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        var res = await fetch(url, opts);
+    return (function tryFetch(attempt) {
+      return fetchFn(url, opts).then(function (res) {
         return res;
-      } catch (e) {
+      }).catch(function (e) {
         lastErr = e;
         if (attempt < maxRetries) {
-          console.log('retrying... (' + attempt + '/' + maxRetries + ') ' + url);
-          await new Promise(function (r) { setTimeout(r, 2000); });
+          safeLog('retrying... (' + attempt + '/' + maxRetries + ') ' + url);
+          return sleep(2000).then(function () {
+            return tryFetch(attempt + 1);
+          });
         }
-      }
+        throw lastErr;
+      });
+    })(1);
+  }
+
+  function sleep(ms) {
+    return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  // --- Low-level fetch that falls back to XHR ---
+  function fetchFn(url, opts) {
+    opts = opts || {};
+    // Use native fetch if available
+    if (typeof fetch !== 'undefined') {
+      return fetch(url, opts).catch(function (fetchErr) {
+        safeLog('fetch failed, trying XHR: ' + url);
+        // Fallback to XHR for one attempt
+        return xhrFetch(url, opts);
+      });
     }
-
-    throw lastErr || new Error('请求失败，请检查网络连接');
+    return xhrFetch(url, opts);
   }
 
-  /**
-   * Build absolute API URL.
-   */
-  function apiUrl(path) {
-    initBase();
-    return BASE + '/api' + path;
+  function xhrFetch(url, opts) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      var method = (opts.method || 'GET').toUpperCase();
+
+      xhr.open(method, url, true);
+
+      // Set headers
+      if (opts.headers) {
+        Object.keys(opts.headers).forEach(function (key) {
+          try { xhr.setRequestHeader(key, opts.headers[key]); } catch (e) {}
+        });
+      }
+
+      xhr.onload = function () {
+        var resp = {
+          ok: xhr.status >= 200 && xhr.status < 400,
+          status: xhr.status,
+          json: function () { return Promise.resolve(JSON.parse(xhr.responseText)); },
+          text: function () { return Promise.resolve(xhr.responseText); }
+        };
+        resolve(resp);
+      };
+      xhr.onerror = function () {
+        reject(new Error('请求失败，请检查网络连接'));
+      };
+      xhr.ontimeout = function () {
+        reject(new Error('请求超时'));
+      };
+      xhr.timeout = 15000;
+
+      if (opts.body instanceof FormData) {
+        xhr.send(opts.body);
+      } else if (opts.body) {
+        xhr.send(opts.body);
+      } else {
+        xhr.send();
+      }
+    });
   }
 
-  /**
-   * Save a puzzle configuration to the backend.
-   */
+  // =============================================
+  // Public API
+  // =============================================
+
   async function savePuzzle(imageFile, gridSize, moves, hiddenIndex, name) {
     var formData = new FormData();
     formData.append('image', imageFile);
@@ -75,9 +129,6 @@ window.API = (function () {
     return res.json();
   }
 
-  /**
-   * Load a shared puzzle from the backend.
-   */
   async function loadPuzzle(puzzleId) {
     var res = await fetchWithRetry(apiUrl('/puzzles/' + encodeURIComponent(puzzleId)));
 
@@ -92,9 +143,6 @@ window.API = (function () {
     return res.json();
   }
 
-  /**
-   * Save a completion record after victory.
-   */
   async function saveCompletion(puzzleId, playerName, timeSeconds, moveCount) {
     var res = await fetchWithRetry(apiUrl('/completions'), {
       method: 'POST',
@@ -110,9 +158,6 @@ window.API = (function () {
     return res.json();
   }
 
-  /**
-   * Load the leaderboard for a puzzle.
-   */
   async function getLeaderboard(puzzleId) {
     var res = await fetchWithRetry(apiUrl('/completions/' + encodeURIComponent(puzzleId)));
 
@@ -124,5 +169,15 @@ window.API = (function () {
     return res.json();
   }
 
-  return { savePuzzle, loadPuzzle, saveCompletion, getLeaderboard };
+  var API = { savePuzzle: savePuzzle, loadPuzzle: loadPuzzle, saveCompletion: saveCompletion, getLeaderboard: getLeaderboard, _lastUrl: '', _retries: 0 };
+
+  // Wrap loadPuzzle to track URL + retries for debug panel
+  var _loadPuzzle = loadPuzzle;
+  API.loadPuzzle = function (puzzleId) {
+    API._lastUrl = apiUrl('/puzzles/' + encodeURIComponent(puzzleId));
+    API._retries = 0;
+    return _loadPuzzle(puzzleId);
+  };
+
+  return API;
 })();
