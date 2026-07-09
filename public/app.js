@@ -216,25 +216,91 @@
     return null;
   }
 
-  // --- Image Upload ---
+  // --- Image Upload (with auto-compress pipeline) ---
   function handleImageSelect(e) {
     var file = e.target.files[0];
     if (!file) return;
 
-    gameState.imageFile = file;
     gameState.readonly = false;
     gameState.originalImageUrl = null;
+    gameState.imageFile = file;
 
     var reader = new FileReader();
     reader.onload = function (ev) {
       var img = new Image();
       img.onload = function () {
-        gameState.imageElement = img;
-        imagePreview.src = ev.target.result;
-        imagePreview.style.display = 'block';
-        uploadPlaceholder.style.display = 'none';
-        uploadArea.classList.add('has-image');
-        btnStart.disabled = false;
+        var needsResize = img.naturalWidth > 2048 || img.naturalHeight > 2048;
+        var needsCompress = file.size > 5 * 1024 * 1024;
+
+        if (!needsResize && !needsCompress) {
+          // Fast path: no changes needed
+          gameState.imageElement = img;
+          imagePreview.src = ev.target.result;
+          imagePreview.style.display = 'block';
+          uploadPlaceholder.style.display = 'none';
+          uploadArea.classList.add('has-image');
+          btnStart.disabled = false;
+          return;
+        }
+
+        // Step 1: Resize dimensions (fit within 2048px, maintain aspect ratio)
+        var w = img.naturalWidth;
+        var h = img.naturalHeight;
+        if (needsResize) {
+          var ratio = Math.min(2048 / w, 2048 / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+        // Step 2: Try WebP first, fallback to JPEG
+        function applyCompressedFile(blob) {
+          if (!blob || blob.size === 0) {
+            // Both WebP and JPEG failed — use original file
+            gameState.imageElement = img;
+            gameState.imageFile = file;
+            imagePreview.src = ev.target.result;
+            imagePreview.style.display = 'block';
+            uploadPlaceholder.style.display = 'none';
+            uploadArea.classList.add('has-image');
+            btnStart.disabled = false;
+            return;
+          }
+
+          var ext = blob.type === 'image/webp' ? '.webp' : '.jpg';
+          var compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, ext), {
+            type: blob.type
+          });
+          gameState.imageFile = compressedFile;
+
+          var previewReader = new FileReader();
+          previewReader.onload = function (prev) {
+            var previewImg = new Image();
+            previewImg.onload = function () {
+              gameState.imageElement = previewImg;
+              imagePreview.src = prev.target.result;
+              imagePreview.style.display = 'block';
+              uploadPlaceholder.style.display = 'none';
+              uploadArea.classList.add('has-image');
+              btnStart.disabled = false;
+            };
+            previewImg.src = prev.target.result;
+          };
+          previewReader.readAsDataURL(compressedFile);
+        }
+
+        canvas.toBlob(function (webpBlob) {
+          if (!webpBlob || webpBlob.size === 0) {
+            // WebP not supported — fallback to JPEG
+            canvas.toBlob(applyCompressedFile, 'image/jpeg', 0.85);
+          } else {
+            applyCompressedFile(webpBlob);
+          }
+        }, 'image/webp', 0.85);
       };
       img.src = ev.target.result;
     };
