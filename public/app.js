@@ -796,7 +796,43 @@
     });
   }
 
-  // --- Share ---
+  // --- Share fallback: selectable URL dialog ---
+  var copyFallbackOverlay = document.createElement('div');
+  copyFallbackOverlay.id = 'copy-fallback-overlay';
+  copyFallbackOverlay.innerHTML = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;"><div style="background:#1e1e32;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center;"><p style="color:#ffd452;font-weight:600;margin-bottom:8px;">🔗 分享链接</p><p style="color:#aaa;font-size:0.85rem;margin-bottom:14px;">自动复制失败，请长按下方链接手动复制</p><input id="fallback-url-input" style="width:100%;padding:10px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.06);color:#e0e0e0;font-size:0.85rem;text-align:center;margin-bottom:14px;word-break:break-all;" readonly><div style="display:flex;gap:10px;"><button id="fallback-copy-btn" style="flex:1;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#52d4ff,#52ff8f);color:#1a1a2e;font-weight:600;font-size:1rem;cursor:pointer;">📋 复制</button><button id="fallback-close-btn" style="flex:1;padding:12px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.08);color:#ddd;font-weight:600;font-size:1rem;cursor:pointer;">关闭</button></div></div></div>';
+  copyFallbackOverlay.style.display = 'none';
+  document.body.appendChild(copyFallbackOverlay);
+
+  var fbInput = document.getElementById('fallback-url-input');
+  document.getElementById('fallback-copy-btn').addEventListener('click', function () {
+    // execCommand works reliably in user click context
+    fbInput.removeAttribute('readonly');
+    fbInput.select();
+    fbInput.setSelectionRange(0, fbInput.value.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    if (ok) showToast('✅ 已复制！');
+    else showToast('⚠ 请长按输入框中的链接手动复制');
+    fbInput.setAttribute('readonly', '');
+    copyFallbackOverlay.style.display = 'none';
+  });
+  document.getElementById('fallback-close-btn').addEventListener('click', function () {
+    copyFallbackOverlay.style.display = 'none';
+  });
+  copyFallbackOverlay.addEventListener('click', function (e) {
+    if (e.target === copyFallbackOverlay) copyFallbackOverlay.style.display = 'none';
+  });
+
+  function showCopyFallback(url) {
+    fbInput.value = url;
+    copyFallbackOverlay.style.display = 'block';
+    // Auto-select on desktop
+    setTimeout(function () {
+      fbInput.select();
+      fbInput.setSelectionRange(0, url.length);
+    }, 100);
+  }
+
   async function sharePuzzle() {
     btnShare.disabled = true;
     btnShare.textContent = '⏳ ...';
@@ -828,7 +864,7 @@
         await copyToClipboard(shareUrl);
         showToast('✅ 分享链接已复制到剪贴板！');
       } catch (clipErr) {
-        showToast('📋 请手动复制: ' + shareUrl, 8000);
+        showCopyFallback(shareUrl);
       }
 
       window.history.replaceState({}, '', '/?puzzle=' + puzzleId);
