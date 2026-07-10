@@ -289,7 +289,7 @@ button, .tile, .upload-area, input[type="text"] {
 }
 
 /* Restart button in game header */
-.btn-restart {
+.btn-share {
   padding: 8px 12px;
   border: 1px solid rgba(255, 210, 82, 0.3);
   border-radius: 10px;
@@ -301,19 +301,19 @@ button, .tile, .upload-area, input[type="text"] {
   transition: background 0.2s, border-color 0.2s;
 }
 
-.btn-restart:hover {
+.btn-share:hover {
   background: rgba(255, 210, 82, 0.18);
   border-color: rgba(255, 210, 82, 0.5);
 }
 
 /* Restart button in victory card */
-.btn-restart-win {
+.btn-share-win {
   background: rgba(255, 210, 82, 0.12);
   color: #ffd452;
   border: 1px solid rgba(255, 210, 82, 0.3);
 }
 
-.btn-restart-win:hover {
+.btn-share-win:hover {
   background: rgba(255, 210, 82, 0.22);
 }
 
@@ -380,7 +380,7 @@ button, .tile, .upload-area, input[type="text"] {
   border-color: rgba(240, 147, 251, 0.5);
 }
 
-.btn-back, .btn-share, .btn-leaderboard {
+.btn-back, .btn-restart, .btn-leaderboard {
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
@@ -392,12 +392,12 @@ button, .tile, .upload-area, input[type="text"] {
   white-space: nowrap;
 }
 
-.btn-back:hover, .btn-share:hover, .btn-leaderboard:hover {
+.btn-back:hover, .btn-restart:hover, .btn-leaderboard:hover {
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-.btn-share:disabled, .btn-leaderboard:disabled, .btn-restart:disabled {
+.btn-restart:disabled, .btn-leaderboard:disabled, .btn-share:disabled {
   opacity: 0.4;
   cursor: wait;
 }
@@ -671,13 +671,13 @@ button, .tile, .upload-area, input[type="text"] {
   transform: translateY(-2px);
 }
 
-.btn-share-win {
+.btn-restart-win {
   background: rgba(255, 255, 255, 0.1);
   color: #ddd;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.btn-share-win:hover {
+.btn-restart-win:hover {
   background: rgba(255, 255, 255, 0.18);
 }
 
@@ -808,7 +808,7 @@ button, .tile, .upload-area, input[type="text"] {
     font-size: 0.85rem;
   }
 
-  .btn-back, .btn-share, .btn-leaderboard, .btn-restart {
+  .btn-back, .btn-restart, .btn-leaderboard, .btn-share {
     padding: 8px 10px;
     font-size: 0.78rem;
     border-radius: 8px;
@@ -952,7 +952,7 @@ button, .tile, .upload-area, input[type="text"] {
     font-size: 0.78rem;
   }
 
-  .btn-back, .btn-share, .btn-leaderboard, .btn-restart {
+  .btn-back, .btn-restart, .btn-leaderboard, .btn-share {
     padding: 7px 8px;
     font-size: 0.73rem;
     border-radius: 7px;
