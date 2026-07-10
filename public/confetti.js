@@ -24,8 +24,9 @@ window.Confetti = (function () {
 
   function resize() {
     if (canvas) {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // Use document.documentElement to avoid iOS Safari innerWidth/scrollbar issues
+      canvas.width = document.documentElement.clientWidth || window.innerWidth;
+      canvas.height = document.documentElement.clientHeight || window.innerHeight;
     }
   }
 
