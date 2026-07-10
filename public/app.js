@@ -36,6 +36,8 @@
   var btnSubmitScore = document.getElementById('btn-submit-score');
   var btnLeaderboardWin = document.getElementById('btn-leaderboard-win');
   var btnCreateOwn = document.getElementById('btn-create-own');
+  var victoryRankLine = document.getElementById('victory-rank-line');
+  var victoryRank = document.getElementById('victory-rank');
   var playerNameInput = document.getElementById('player-name-input');
   var victoryNameSection = document.getElementById('victory-name-section');
   var victorySavedMsg = document.getElementById('victory-saved-msg');
@@ -668,10 +670,48 @@
       gameState.completionSubmitted = false;
       victoryOverlay.classList.add('active');
       Confetti.start();
+
+      // Compute and display current rank
+      fetchAndDisplayRank();
     }, 500);
   }
 
-  // --- Submit Score ---
+  // --- Rank computation ---
+  async function fetchAndDisplayRank() {
+    victoryRankLine.style.display = 'none';
+    if (!gameState.puzzleId) return;
+
+    try {
+      var data = await API.getLeaderboard(gameState.puzzleId);
+      var entries = data.leaderboard || [];
+      var total = entries.length;
+
+      // Compute where this player's score would rank
+      var rank = 1;
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].timeSeconds < gameState.elapsedSeconds) {
+          rank++;
+        } else if (entries[i].timeSeconds === gameState.elapsedSeconds && entries[i].moveCount < gameState.moveCount) {
+          rank++;
+        } else {
+          break;
+        }
+      }
+
+      var effectiveTotal = total + 1; // including current player
+
+      if (rank <= 50) {
+        var icon = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : '🏅'));
+        victoryRank.textContent = icon + ' ' + rank;
+      } else {
+        var pct = Math.round((rank / effectiveTotal) * 100);
+        victoryRank.textContent = 'Top ' + pct + '%';
+      }
+      victoryRankLine.style.display = 'block';
+    } catch (e) {
+      // Rank display is non-essential — silently ignore failures
+    }
+  }
   async function submitScore() {
     if (gameState.completionSubmitted) return;
 
@@ -710,6 +750,8 @@
       btnSubmitScore.style.display = 'none';
       victorySavedMsg.style.display = 'block';
       showToast('✅ 成绩已记录！');
+      // Re-fetch rank now that the score is in the database
+      fetchAndDisplayRank();
     } catch (err) {
       btnSubmitScore.disabled = false;
       btnSubmitScore.textContent = '📝 提交成绩';

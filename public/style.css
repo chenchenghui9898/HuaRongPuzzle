@@ -601,6 +601,18 @@ button, .tile, .upload-area, input[type="text"] {
   color: #f5576c;
 }
 
+/* Victory rank display */
+.victory-rank {
+  font-size: 1rem;
+  color: #ffd452;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.victory-rank span {
+  font-size: 1.15rem;
+}
+
 /* Completed puzzle image in victory card */
 .victory-completed-image {
   display: none;
