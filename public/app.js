@@ -27,6 +27,7 @@
   var btnResumeFresh = document.getElementById('btn-resume-fresh');
 
   var btnBack = document.getElementById('btn-back');
+  var btnPause = document.getElementById('btn-pause');
   var btnRestart = document.getElementById('btn-restart');
   var btnShare = document.getElementById('btn-share');
   var btnLeaderboard = document.getElementById('btn-leaderboard');
@@ -50,6 +51,8 @@
   var gameHint = document.getElementById('game-hint');
   var toast = document.getElementById('toast');
   var toastMsg = document.getElementById('toast-msg');
+  var pauseOverlay = document.getElementById('pause-overlay');
+  var btnPauseResume = document.getElementById('btn-pause-resume');
 
   // --- Game State ---
   var gameState = {
@@ -73,6 +76,8 @@
     originalImageUrl: null,
     timerStarted: false,
     completionSubmitted: false,
+    paused: false,
+    pausedAt: null, // Date.now() at pause time, null if not paused
   };
 
   // --- Progress Cache (localStorage) ---
@@ -150,6 +155,8 @@
     imageInput.addEventListener('change', handleImageSelect);
     btnStart.addEventListener('click', startGame);
     btnBack.addEventListener('click', backToSetup);
+    btnPause.addEventListener('click', pauseGame);
+    btnPauseResume.addEventListener('click', resumeGame);
     btnRestart.addEventListener('click', restartPuzzle);
     btnRestartWin.addEventListener('click', restartPuzzle);
     btnShare.addEventListener('click', sharePuzzle);
@@ -373,6 +380,8 @@
   // --- Restart Puzzle (clear progress + fetch fresh) ---
   async function restartPuzzle() {
     stopTimer();
+    gameState.paused = false;
+    pauseOverlay.classList.remove('active');
     Confetti.stop();
     victoryOverlay.classList.remove('active');
 
@@ -774,6 +783,8 @@
     stopTimer();
     gameState.startTime = Date.now();
     gameState.elapsedSeconds = 0;
+    gameState.paused = false;
+    gameState.pausedAt = null;
     Renderer.updateTimer(0);
 
     gameState.timerInterval = setInterval(function () {
@@ -787,6 +798,34 @@
       clearInterval(gameState.timerInterval);
       gameState.timerInterval = null;
     }
+  }
+
+  // --- Pause / Resume ---
+  function pauseGame() {
+    if (!gameState.timerStarted || gameState.paused) return;
+    gameState.paused = true;
+    gameState.pausedAt = Date.now();
+    // Freeze the elapsed time at the current value
+    if (gameState.timerInterval) {
+      clearInterval(gameState.timerInterval);
+      gameState.timerInterval = null;
+    }
+    pauseOverlay.classList.add('active');
+  }
+
+  function resumeGame() {
+    if (!gameState.paused) return;
+    // Adjust startTime so elapsedSeconds stays correct
+    var pausedDuration = Date.now() - gameState.pausedAt;
+    gameState.startTime += pausedDuration;
+    gameState.paused = false;
+    gameState.pausedAt = null;
+    // Restart interval
+    gameState.timerInterval = setInterval(function () {
+      gameState.elapsedSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+      Renderer.updateTimer(gameState.elapsedSeconds);
+    }, 500);
+    pauseOverlay.classList.remove('active');
   }
 
   function formatTime(seconds) {
@@ -921,6 +960,8 @@
   // --- Back to Setup ---
   function backToSetup() {
     stopTimer();
+    gameState.paused = false;
+    pauseOverlay.classList.remove('active');
     Confetti.stop();
     victoryOverlay.classList.remove('active');
     gameScreen.classList.remove('active');
@@ -954,6 +995,8 @@
 
   function goToSetup() {
     if (gameScreen.classList.contains('active')) stopTimer();
+    gameState.paused = false;
+    pauseOverlay.classList.remove('active');
     Confetti.stop();
     victoryOverlay.classList.remove('active');
     gameScreen.classList.remove('active');

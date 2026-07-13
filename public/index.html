@@ -76,6 +76,7 @@
           <span class="stat">👣 步数: <span id="move-counter">0</span></span>
         </div>
         <div class="game-actions">
+          <button class="btn-pause" id="btn-pause" title="暂停">⏸ 暂停</button>
           <button class="btn-restart" id="btn-restart" title="重新开始">🔄 重新开始</button>
           <button class="btn-leaderboard" id="btn-leaderboard" title="完成排行榜">🏆 排行榜</button>
           <button class="btn-share" id="btn-share" title="分享此拼图">🔗 分享</button>
@@ -89,6 +90,13 @@
     <div class="game-board-wrapper">
       <div class="game-board" id="puzzle-grid">
         <!-- Tiles rendered dynamically -->
+      </div>
+      <!-- Pause Overlay -->
+      <div class="pause-overlay" id="pause-overlay">
+        <div class="pause-card">
+          <p class="pause-ad-text">广告位招租</p>
+          <button class="btn-pause-resume" id="btn-pause-resume">▶ 继续拼图</button>
+        </div>
       </div>
     </div>
 
