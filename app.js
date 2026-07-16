@@ -391,7 +391,7 @@ app.get('/api/rooms/:id', async (req, res) => {
       .from('room_puzzles')
       .select('id, puzzle_id, added_by, created_at')
       .eq('room_id', req.params.id)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (rpError) {
       console.error('Room puzzles query error:', rpError);
