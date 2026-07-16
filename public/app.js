@@ -1772,7 +1772,6 @@
 
     try {
       await API.addPuzzleToRoom(roomId, gameState.puzzleId);
-      addRecentRoom(roomId, '');
       showToast('✅ 已添加到房间！');
       closeRoomModal();
     } catch (err) {
