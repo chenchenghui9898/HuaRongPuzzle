@@ -7,6 +7,7 @@
 
 html {
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -19,6 +20,8 @@ body {
   align-items: center;
   justify-content: center;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   -webkit-tap-highlight-color: transparent;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
@@ -52,7 +55,7 @@ button, .tile, .upload-area, input[type="text"] {
 
 /* ===== Setup Screen ===== */
 .setup-card {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 30, 55, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1172,9 +1175,8 @@ button, .tile, .upload-area, input[type="text"] {
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(15, 12, 41, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 12, 41, 0.92);
+  /* No backdrop-filter — crashes WeChat WebView scrolling */
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1262,10 +1264,10 @@ button, .tile, .upload-area, input[type="text"] {
 
 .square-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
   width: 100%;
-  max-width: 600px;
+  max-width: 400px;
 }
 
 .square-loading {
@@ -1285,21 +1287,19 @@ button, .tile, .upload-area, input[type="text"] {
 .square-card {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: transform 0.15s, border-color 0.15s;
 }
 
 .square-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .square-card-fragment {
   width: 100%;
-  height: auto;
   aspect-ratio: 1;
   object-fit: cover;
   display: block;
@@ -1307,35 +1307,41 @@ button, .tile, .upload-area, input[type="text"] {
 }
 
 .square-card-info {
-  padding: 12px 14px;
+  padding: 5px 6px;
 }
 
 .square-card-name {
-  font-size: 0.95rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #eee;
-  margin-bottom: 4px;
+  color: #ddd;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
 
 .square-card-diff {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
   background: rgba(245, 87, 108, 0.15);
   color: #f5576c;
-  font-size: 0.78rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 3px;
 }
 
 .square-card-stats {
   display: flex;
-  gap: 12px;
-  font-size: 0.82rem;
-  color: #999;
+  gap: 4px;
+  font-size: 0.65rem;
+  color: #888;
+  flex-wrap: wrap;
+}
+
+.square-card-stats span {
+  white-space: nowrap;
 }
 
 /* ================================================================
@@ -1698,13 +1704,21 @@ button, .tile, .upload-area, input[type="text"] {
   }
 
   .square-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    max-width: 400px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 360px;
   }
 
   .square-title {
     font-size: 1.4rem;
+  }
+
+  .square-card-info {
+    padding: 4px 5px;
+  }
+
+  .square-card-name {
+    font-size: 0.65rem;
   }
 
   .room-title {
