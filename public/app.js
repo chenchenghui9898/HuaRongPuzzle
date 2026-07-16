@@ -23,6 +23,7 @@
   var uploadPlaceholder = document.getElementById('upload-placeholder');
   var imagePreview = document.getElementById('image-preview');
   var btnStart = document.getElementById('btn-start');
+  var gridOverlay = document.getElementById('grid-overlay');
   var loadingShared = document.getElementById('loading-shared');
   var difficultyButtons = document.getElementById('difficulty-buttons');
   var puzzleNameInput = document.getElementById('puzzle-name-input');
@@ -227,6 +228,56 @@
     return { screen: 'setup' };
   }
 
+  // --- Grid Overlay on image preview ---
+  function drawGridOverlay() {
+    if (!gridOverlay || !imagePreview || imagePreview.style.display === 'none') {
+      if (gridOverlay) gridOverlay.style.display = 'none';
+      return;
+    }
+
+    var gs = gameState.gridSize;
+    var rect = imagePreview.getBoundingClientRect();
+    var w = rect.width;
+    var h = rect.height;
+
+    if (w === 0 || h === 0) {
+      gridOverlay.style.display = 'none';
+      return;
+    }
+
+    var dpr = window.devicePixelRatio || 1;
+    gridOverlay.width = w * dpr;
+    gridOverlay.height = h * dpr;
+    gridOverlay.style.width = w + 'px';
+    gridOverlay.style.height = h + 'px';
+    gridOverlay.style.display = 'block';
+
+    var ctx = gridOverlay.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+    ctx.lineWidth = 1;
+
+    // Vertical lines
+    for (var i = 1; i < gs; i++) {
+      var x = (w / gs) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (var j = 1; j < gs; j++) {
+      var y = (h / gs) * j;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+  }
+
   // --- SPA Routing ---
   function hideAllScreens() {
     setupScreen.classList.remove('active');
@@ -354,6 +405,7 @@
       document.querySelectorAll('.diff-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       gameState.gridSize = parseInt(btn.dataset.size, 10);
+      drawGridOverlay();
     });
 
     // Reaction buttons
@@ -423,6 +475,7 @@
         if (gameScreen.classList.contains('active') && gameState.currentState) {
           refreshGridDisplay();
         }
+        drawGridOverlay();
       }, 200);
     });
   }
@@ -486,6 +539,7 @@
           uploadPlaceholder.style.display = 'none';
           uploadArea.classList.add('has-image');
           btnStart.disabled = false;
+          setTimeout(drawGridOverlay, 50);
           return;
         }
 
@@ -514,6 +568,7 @@
             uploadPlaceholder.style.display = 'none';
             uploadArea.classList.add('has-image');
             btnStart.disabled = false;
+            setTimeout(drawGridOverlay, 50);
             return;
           }
 
@@ -533,6 +588,7 @@
               uploadPlaceholder.style.display = 'none';
               uploadArea.classList.add('has-image');
               btnStart.disabled = false;
+              setTimeout(drawGridOverlay, 50);
             };
             previewImg.src = prev.target.result;
           };
@@ -638,6 +694,7 @@
     victoryOverlay.classList.remove('active');
     mainNav.style.display = 'none';
     gameReactions.style.display = 'none';
+    if (gridOverlay) gridOverlay.style.display = 'none';
 
     if (gameState.puzzleId) {
       showReactionBar(0, 0);
@@ -1298,6 +1355,7 @@
     uploadPlaceholder.style.display = '';
     uploadArea.classList.remove('has-image');
     puzzleNameInput.value = '';
+    if (gridOverlay) gridOverlay.style.display = 'none';
   }
 
   function goToSetup() {
@@ -1339,6 +1397,7 @@
     uploadPlaceholder.style.display = '';
     uploadArea.classList.remove('has-image');
     puzzleNameInput.value = '';
+    if (gridOverlay) gridOverlay.style.display = 'none';
   }
 
   // --- Refresh grid on resize ---
@@ -1654,28 +1713,12 @@
     try {
       var result = await API.createRoom(name);
       addRecentRoom(result.id, result.name);
-
-      // Show the room link in a copy-able dialog
-      var roomUrl = window.location.origin + '/room/' + result.id;
-      showRoomCreatedDialog(result.name, roomUrl);
+      window.location.href = '/room/' + result.id;
     } catch (err) {
       showToast('创建房间失败: ' + (err.message || '请检查网络连接'));
     } finally {
       if (btnCreateRoomConfirm) btnCreateRoomConfirm.disabled = false;
     }
-  }
-
-  // Show room created + link copy dialog
-  function showRoomCreatedDialog(roomName, roomUrl) {
-    // Use the existing copy-fallback-overlay pattern
-    fbInput.value = roomUrl;
-    // Update the title to reflect room creation
-    var titleEl = copyFallbackOverlay.querySelector('p:first-child');
-    if (titleEl) titleEl.textContent = '🏠 房间「' + roomName + '」已创建';
-    copyFallbackOverlay.style.display = 'block';
-    setTimeout(function() {
-      try { fbInput.select(); fbInput.setSelectionRange(0, roomUrl.length); } catch(e) {}
-    }, 100);
   }
 
   function shareRoomLink() {
