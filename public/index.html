@@ -4,9 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>图片华容道 - Picture Klotski</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+
+  <!-- ===== DeviceId management (SSR-safe, before all other scripts) ===== -->
+  <script>
+    (function() {
+      if (typeof window === 'undefined') return;
+      var DEVICE_ID_KEY = 'klotski_device_id';
+      var deviceId = null;
+      try { deviceId = localStorage.getItem(DEVICE_ID_KEY); } catch(e) {}
+      if (!deviceId) {
+        deviceId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+        try { localStorage.setItem(DEVICE_ID_KEY, deviceId); } catch(e) {}
+      }
+      window.__DEVICE_ID__ = deviceId;
+
+      var _originalFetch = window.fetch;
+      window.fetch = function(url, options) {
+        options = options || {};
+        if (options.headers instanceof Headers) {
+          try { if (!options.headers.has('x-device-id')) options.headers.set('x-device-id', deviceId); } catch(e) {}
+        } else {
+          options.headers = options.headers || {};
+          if (!options.headers['x-device-id']) options.headers['x-device-id'] = deviceId;
+        }
+        return _originalFetch.call(this, url, options);
+      };
+    })();
+  </script>
+
+  <!-- ===== Main Nav Bar ===== -->
+  <nav class="main-nav" id="main-nav">
+    <a href="/" class="nav-link" data-nav="home">🏠 首页</a>
+    <a href="/square" class="nav-link" data-nav="square">🏛 拼图广场</a>
+    <a href="#" class="nav-link" id="nav-create-room">🏠 创建房间</a>
+  </nav>
 
   <!-- ===== Setup Screen ===== -->
   <section id="setup-screen" class="screen active">
@@ -42,6 +81,14 @@
             <button class="diff-btn" data-size="6">6 × 6</button>
             <button class="diff-btn" data-size="7">7 × 7</button>
           </div>
+        </div>
+
+        <!-- Publish to Square -->
+        <div class="publish-section">
+          <label class="publish-label">
+            <input type="checkbox" id="publish-to-square">
+            <span>发布到拼图广场</span>
+          </label>
         </div>
 
         <!-- Start Button -->
@@ -102,11 +149,87 @@
 
     <p class="game-hint" id="game-hint">点击空格旁边的图块来移动</p>
 
+    <!-- Reaction Bar (shown for shared puzzles) -->
+    <div class="game-reactions" id="game-reactions" style="display:none">
+      <button class="btn-reaction btn-rose" id="btn-rose" title="送玫瑰">🌹 <span class="react-count" id="rose-count">0</span></button>
+      <button class="btn-reaction btn-slipper" id="btn-slipper" title="扔拖鞋">🩴 <span class="react-count" id="slipper-count">0</span></button>
+      <button class="btn-add-to-room" id="btn-add-to-room-game" title="添加到房间">📁 添加到房间</button>
+    </div>
+
     <!-- Share Toast -->
     <div class="toast" id="toast">
       <span id="toast-msg"></span>
     </div>
   </section>
+
+  <!-- ===== Square Screen ===== -->
+  <section id="square-screen" class="screen">
+    <div class="square-header">
+      <h2 class="square-title">🏛 拼图广场</h2>
+      <p class="square-subtitle">发现热门拼图挑战</p>
+    </div>
+    <div class="square-grid" id="square-grid">
+      <!-- Cards rendered dynamically -->
+    </div>
+    <div class="square-loading" id="square-loading">
+      <div class="spinner"></div>
+      <p>加载中...</p>
+    </div>
+    <div class="square-empty" id="square-empty" style="display:none">
+      <p>广场上暂无拼图</p>
+    </div>
+  </section>
+
+  <!-- ===== Room Screen ===== -->
+  <section id="room-screen" class="screen">
+    <div class="room-header">
+      <button class="btn-back" id="btn-room-back">← 返回</button>
+      <h2 class="room-title" id="room-name">拼图房间</h2>
+      <span class="room-puzzle-count" id="room-puzzle-count">0 个拼图</span>
+    </div>
+    <div class="room-actions">
+      <button class="btn-room-share" id="btn-room-share">🔗 复制房间链接</button>
+      <div class="room-add-section">
+        <input type="text" id="room-add-puzzle-id" class="room-add-input" placeholder="粘贴拼图ID或链接">
+        <button class="btn-room-add" id="btn-room-add-puzzle">➕ 添加</button>
+      </div>
+    </div>
+    <div class="room-puzzles" id="room-puzzles">
+      <!-- Puzzle cards rendered dynamically -->
+    </div>
+    <div class="room-empty" id="room-empty" style="display:none">
+      <p>房间中还没有拼图，快来添加第一个吧！</p>
+    </div>
+  </section>
+
+  <!-- ===== Room Select Modal ===== -->
+  <div class="modal-overlay" id="room-select-modal" style="display:none">
+    <div class="modal-card">
+      <h3 class="modal-title">📁 添加到房间</h3>
+      <p class="modal-subtitle">选择已有房间或输入房间ID</p>
+      <div class="modal-room-list" id="modal-room-list">
+        <!-- Recent rooms rendered dynamically -->
+      </div>
+      <div class="modal-room-input-row">
+        <input type="text" id="modal-room-id-input" class="room-add-input" placeholder="输入房间ID">
+        <button class="btn-victory btn-submit" id="btn-confirm-add-room">确认添加</button>
+      </div>
+      <button class="btn-victory btn-create-own" id="btn-cancel-room-modal" style="margin-top:8px;width:100%;">取消</button>
+    </div>
+  </div>
+
+  <!-- ===== Create Room Modal ===== -->
+  <div class="modal-overlay" id="create-room-modal" style="display:none">
+    <div class="modal-card">
+      <h3 class="modal-title">🏠 创建拼图房间</h3>
+      <p class="modal-subtitle">输入房间名称，与朋友一起分享拼图</p>
+      <input type="text" id="create-room-name-input" class="room-add-input" placeholder="未命名房间" maxlength="50" style="margin-bottom:14px;width:100%;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn-victory btn-submit" id="btn-create-room-confirm" style="flex:1;">确认创建</button>
+        <button class="btn-victory btn-create-own" id="btn-create-room-cancel" style="flex:1;">取消</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== Victory Overlay ===== -->
   <div class="overlay" id="victory-overlay">
@@ -169,10 +292,10 @@
   </div>
 
   <!-- Scripts (order matters: engine → api → renderer → confetti → app) -->
-  <script src="puzzle-engine.js"></script>
-  <script src="api.js"></script>
-  <script src="renderer.js"></script>
-  <script src="confetti.js"></script>
-  <script src="app.js"></script>
+  <script src="/puzzle-engine.js"></script>
+  <script src="/api.js"></script>
+  <script src="/renderer.js"></script>
+  <script src="/confetti.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

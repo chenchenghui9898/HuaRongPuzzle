@@ -10,6 +10,11 @@
   var victoryOverlay = document.getElementById('victory-overlay');
   var puzzleGrid = document.getElementById('puzzle-grid');
   var confettiCanvas = document.getElementById('confetti-canvas');
+  var mainNav = document.getElementById('main-nav');
+
+  // New screens
+  var squareScreen = document.getElementById('square-screen');
+  var roomScreen = document.getElementById('room-screen');
 
   var setupContent = document.getElementById('setup-content');
   var setupSubtitle = document.getElementById('setup-subtitle');
@@ -21,6 +26,7 @@
   var loadingShared = document.getElementById('loading-shared');
   var difficultyButtons = document.getElementById('difficulty-buttons');
   var puzzleNameInput = document.getElementById('puzzle-name-input');
+  var publishCheckbox = document.getElementById('publish-to-square');
   var resumePrompt = document.getElementById('resume-prompt');
   var resumeDetail = document.getElementById('resume-detail');
   var btnResumeContinue = document.getElementById('btn-resume-continue');
@@ -32,6 +38,35 @@
   var btnShare = document.getElementById('btn-share');
   var btnLeaderboard = document.getElementById('btn-leaderboard');
   var btnCreatePuzzleGame = document.getElementById('btn-create-puzzle-game');
+  var gameReactions = document.getElementById('game-reactions');
+  var btnRose = document.getElementById('btn-rose');
+  var btnSlipper = document.getElementById('btn-slipper');
+  var roseCountEl = document.getElementById('rose-count');
+  var slipperCountEl = document.getElementById('slipper-count');
+  var btnAddToRoomGame = document.getElementById('btn-add-to-room-game');
+
+  // Room / Modal refs
+  var btnRoomBack = document.getElementById('btn-room-back');
+  var btnRoomShare = document.getElementById('btn-room-share');
+  var roomAddPuzzleId = document.getElementById('room-add-puzzle-id');
+  var btnRoomAddPuzzle = document.getElementById('btn-room-add-puzzle');
+  var roomPuzzlesEl = document.getElementById('room-puzzles');
+  var roomEmpty = document.getElementById('room-empty');
+  var roomName = document.getElementById('room-name');
+  var roomPuzzleCount = document.getElementById('room-puzzle-count');
+  var roomSelectModal = document.getElementById('room-select-modal');
+  var modalRoomList = document.getElementById('modal-room-list');
+  var modalRoomIdInput = document.getElementById('modal-room-id-input');
+  var btnConfirmAddRoom = document.getElementById('btn-confirm-add-room');
+  var btnCancelRoomModal = document.getElementById('btn-cancel-room-modal');
+  var navCreateRoom = document.getElementById('nav-create-room');
+
+  // Create Room Modal refs
+  var createRoomModal = document.getElementById('create-room-modal');
+  var createRoomNameInput = document.getElementById('create-room-name-input');
+  var btnCreateRoomConfirm = document.getElementById('btn-create-room-confirm');
+  var btnCreateRoomCancel = document.getElementById('btn-create-room-cancel');
+
   var btnRestartWin = document.getElementById('btn-restart-win');
   var btnShareWin = document.getElementById('btn-share-win');
   var btnSubmitScore = document.getElementById('btn-submit-score');
@@ -79,6 +114,149 @@
     paused: false,
     pausedAt: null, // Date.now() at pause time, null if not paused
   };
+
+  // Extended app state (non-gameplay)
+  var appState = {
+    currentRoomId: null,
+    reactionCounts: { rose: 0, slipper: 0 },
+    referrer: null,       // { screen: 'room'|'square'|'setup', roomId?, scrollY? }
+  };
+
+  // --- Reaction state (localStorage anti-spam) ---
+  var REACT_KEY = 'klotski_reactions';
+  var reactionState = {};
+
+  function loadReactionState() {
+    try {
+      var raw = localStorage.getItem(REACT_KEY);
+      if (raw) reactionState = JSON.parse(raw);
+    } catch(e) { reactionState = {}; }
+  }
+
+  function saveReactionState() {
+    try { localStorage.setItem(REACT_KEY, JSON.stringify(reactionState)); } catch(e) {}
+  }
+
+  function hasReacted(puzzleId, type) {
+    return !!(reactionState[puzzleId] && reactionState[puzzleId][type]);
+  }
+
+  function markReacted(puzzleId, type) {
+    if (!reactionState[puzzleId]) reactionState[puzzleId] = {};
+    reactionState[puzzleId][type] = true;
+    saveReactionState();
+  }
+
+  // --- Recent rooms cache ---
+  var RECENT_ROOMS_KEY = 'klotski_recent_rooms';
+
+  function getRecentRooms() {
+    try {
+      var raw = localStorage.getItem(RECENT_ROOMS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) { return []; }
+  }
+
+  function addRecentRoom(roomId, roomName) {
+    var rooms = getRecentRooms();
+    rooms = rooms.filter(function(r) { return r.id !== roomId; });
+    rooms.unshift({ id: roomId, name: roomName });
+    if (rooms.length > 10) rooms.length = 10;
+    try { localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(rooms)); } catch(e) {}
+  }
+
+  // --- Cover Fragment Generation ---
+  function generateCoverFragment(imageElement, gridSize) {
+    var canvas = document.createElement('canvas');
+    var size = 200;
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext('2d');
+
+    var natW = imageElement.naturalWidth;
+    var natH = imageElement.naturalHeight;
+    var tileW = natW / gridSize;
+    var tileH = natH / gridSize;
+    var centerCol = Math.floor(gridSize / 2);
+    var centerRow = Math.floor(gridSize / 2);
+    var sx = centerCol * tileW;
+    var sy = centerRow * tileH;
+
+    ctx.drawImage(imageElement, sx, sy, tileW, tileH, 0, 0, size, size);
+
+    // Try JPEG at quality 0.85; if still > 300KB, reduce quality
+    var quality = 0.85;
+    var dataUri = canvas.toDataURL('image/jpeg', quality);
+    while (dataUri.length > 400000 && quality > 0.3) {
+      quality -= 0.15;
+      dataUri = canvas.toDataURL('image/jpeg', quality);
+    }
+    return dataUri;
+  }
+
+  // --- Referrer tracking (for back-button context) ---
+  var REFERRER_KEY = 'klotski_referrer';
+
+  function saveReferrer(screen, id) {
+    var ref = { screen: screen, roomId: id || null, scrollY: window.scrollY || 0, ts: Date.now() };
+    try { sessionStorage.setItem(REFERRER_KEY, JSON.stringify(ref)); } catch(e) {}
+    appState.referrer = ref;
+  }
+
+  function detectReferrer() {
+    // Prefer sessionStorage (set before hard navigation) over document.referrer
+    try {
+      var raw = sessionStorage.getItem(REFERRER_KEY);
+      if (raw) {
+        var ref = JSON.parse(raw);
+        // Only use if it's recent (< 30 seconds)
+        if (Date.now() - ref.ts < 30000) return ref;
+      }
+    } catch(e) {}
+
+    // Fallback: parse document.referrer
+    try {
+      var refUrl = document.referrer;
+      if (refUrl) {
+        var path = refUrl.replace(/^https?:\/\/[^/]+/, '').replace(/\/+$/, '') || '/';
+        if (path.startsWith('/room/')) return { screen: 'room', roomId: path.split('/room/')[1], scrollY: 0 };
+        if (path === '/square') return { screen: 'square', scrollY: 0 };
+      }
+    } catch(e) {}
+
+    return { screen: 'setup' };
+  }
+
+  // --- SPA Routing ---
+  function hideAllScreens() {
+    setupScreen.classList.remove('active');
+    gameScreen.classList.remove('active');
+    squareScreen.classList.remove('active');
+    roomScreen.classList.remove('active');
+    victoryOverlay.classList.remove('active');
+    if (pauseOverlay) pauseOverlay.classList.remove('active');
+    mainNav.style.display = 'flex';
+  }
+
+  function getRoute() {
+    var path = window.location.pathname.replace(/\/+$/, '') || '/';
+    if (path.startsWith('/room/')) {
+      return { screen: 'room', roomId: path.split('/room/')[1] };
+    }
+    if (path === '/square') return { screen: 'square' };
+    return { screen: 'setup' };
+  }
+
+  function navigateTo(url) {
+    window.history.pushState({}, '', url);
+    routeAndRender();
+  }
+
+  function updateNavActive(screen) {
+    document.querySelectorAll('.nav-link[data-nav]').forEach(function(link) {
+      link.classList.toggle('active', link.dataset.nav === screen);
+    });
+  }
 
   // --- Progress Cache (localStorage) ---
   function progressKey(pid) {
@@ -176,6 +354,65 @@
       document.querySelectorAll('.diff-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       gameState.gridSize = parseInt(btn.dataset.size, 10);
+    });
+
+    // Reaction buttons
+    if (btnRose) btnRose.addEventListener('click', function() { handleReact('rose'); });
+    if (btnSlipper) btnSlipper.addEventListener('click', function() { handleReact('slipper'); });
+    if (btnAddToRoomGame) btnAddToRoomGame.addEventListener('click', openRoomSelectModal);
+
+    // Room screen buttons
+    if (btnRoomBack) btnRoomBack.addEventListener('click', function() { navigateTo('/square'); });
+    if (btnRoomShare) btnRoomShare.addEventListener('click', shareRoomLink);
+    if (btnRoomAddPuzzle) btnRoomAddPuzzle.addEventListener('click', addPuzzleToRoomFromInput);
+    if (btnConfirmAddRoom) btnConfirmAddRoom.addEventListener('click', confirmAddToRoom);
+    if (btnCancelRoomModal) btnCancelRoomModal.addEventListener('click', closeRoomModal);
+    if (roomSelectModal) {
+      roomSelectModal.addEventListener('click', function(e) {
+        if (e.target === roomSelectModal) closeRoomModal();
+      });
+    }
+    navCreateRoom.addEventListener('click', function(e) {
+      e.preventDefault();
+      openCreateRoomModal();
+    });
+    if (btnCreateRoomConfirm) btnCreateRoomConfirm.addEventListener('click', confirmCreateRoom);
+    if (btnCreateRoomCancel) btnCreateRoomCancel.addEventListener('click', closeCreateRoomModal);
+    if (createRoomNameInput) {
+      createRoomNameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') confirmCreateRoom();
+      });
+    }
+    if (createRoomModal) {
+      createRoomModal.addEventListener('click', function(e) {
+        if (e.target === createRoomModal) closeCreateRoomModal();
+      });
+    }
+
+    // Delegation: room puzzle "play" links → save referrer before navigation
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest('.room-puzzle-play');
+      if (link && link.dataset.refRoom) {
+        e.preventDefault();
+        saveReferrer('room', link.dataset.refRoom);
+        window.location.href = link.href;
+      }
+    });
+
+    // Load saved reaction state
+    loadReactionState();
+
+    // SPA back/forward navigation
+    window.addEventListener('popstate', function () {
+      stopTimer();
+      gameState.paused = false;
+      if (pauseOverlay) pauseOverlay.classList.remove('active');
+      Confetti.stop();
+      victoryOverlay.classList.remove('active');
+      gameState.currentState = null;
+      gameState.tileDataUrls = [];
+      gameReactions.style.display = 'none';
+      routeAndRender();
     });
 
     // Window resize
@@ -333,7 +570,7 @@
   }
 
   // --- Start Game (user-uploaded image) ---
-  function startGame() {
+  async function startGame() {
     if (!gameState.imageElement) return;
 
     // Self-defense: discard any stale shared-puzzle state
@@ -362,11 +599,49 @@
     gameState.currentState = shuffled.state;
     gameState.emptyPos = shuffled.emptyPos;
     gameState.shuffleMoves = shuffled.moves;
-    gameState.puzzleId = null;
+
+    // Only save immediately if publishing to square — otherwise defer to share
+    var publishedToSquare = !!(publishCheckbox && publishCheckbox.checked);
+    if (publishedToSquare) {
+      btnStart.disabled = true;
+      btnStart.textContent = '⏳ 创建中...';
+      try {
+        // Generate cover fragment — wrap in own try for precise error
+        var coverFragment = null;
+        try {
+          coverFragment = generateCoverFragment(gameState.imageElement, gs);
+        } catch (fragErr) {
+          console.error('Cover fragment generation failed:', fragErr.message);
+          // Non-fatal: proceed without cover, backend will use Cloudinary fallback
+        }
+
+        var result = await API.savePuzzle(
+          gameState.imageFile, gs, gameState.shuffleMoves,
+          gameState.hiddenTileNum, gameState.puzzleName,
+          true, coverFragment
+        );
+        gameState.puzzleId = result.puzzleId;
+        window.history.replaceState({}, '', '/?puzzle=' + result.puzzleId);
+        showToast('✅ 已发布到拼图广场');
+      } catch (err) {
+        var msg = err.message || '未知错误';
+        console.error('Failed to save puzzle on create:', msg);
+        showToast('⚠ 发布广场失败: ' + msg + '，完成拼图后可重新发布');
+      } finally {
+        btnStart.disabled = false;
+        btnStart.textContent = '生成拼图';
+      }
+    }
 
     setupScreen.classList.remove('active');
     gameScreen.classList.add('active');
     victoryOverlay.classList.remove('active');
+    mainNav.style.display = 'none';
+    gameReactions.style.display = 'none';
+
+    if (gameState.puzzleId) {
+      showReactionBar(0, 0);
+    }
 
     hideSharedLoading();
     puzzleNameDisplay.textContent = gameState.puzzleName;
@@ -414,6 +689,7 @@
       gameScreen.classList.add('active');
       setupScreen.classList.remove('active');
       victoryOverlay.classList.remove('active');
+      mainNav.style.display = 'none';
 
       puzzleGrid.setAttribute('data-size', String(gameState.gridSize));
       Renderer.renderGrid(puzzleGrid, gameState.currentState, gameState.emptyPos, gameState.tileDataUrls, gameState.hiddenTileNum);
@@ -457,6 +733,12 @@
       gameState.completionSubmitted = false;
       gameState.readonly = true;
       gameState.originalImageUrl = data.imageUrl;
+
+      // Show reaction bar for shared puzzles
+      showReactionBar(data.roseCount, data.slipperCount);
+
+      // Track where the user came from for the back button
+      appState.referrer = detectReferrer();
 
       // Fetch image via blob → data URL to avoid Canvas CORS taint on old WebViews
       var resp = await fetch(data.imageUrl);
@@ -515,6 +797,7 @@
       setupScreen.classList.remove('active');
       gameScreen.classList.add('active');
       victoryOverlay.classList.remove('active');
+      mainNav.style.display = 'none';
 
       hideSharedLoading();
       puzzleNameDisplay.textContent = gameState.puzzleName;
@@ -564,6 +847,8 @@
     setupScreen.classList.remove('active');
     gameScreen.classList.add('active');
     victoryOverlay.classList.remove('active');
+    mainNav.style.display = 'none';
+    gameReactions.style.display = 'flex';
 
     resumePrompt.style.display = 'none';
     hideSharedLoading();
@@ -606,6 +891,8 @@
     setupScreen.classList.remove('active');
     gameScreen.classList.add('active');
     victoryOverlay.classList.remove('active');
+    mainNav.style.display = 'none';
+    gameReactions.style.display = 'flex';
 
     puzzleNameDisplay.textContent = gameState.puzzleName;
     puzzleGrid.setAttribute('data-size', String(gs));
@@ -737,9 +1024,10 @@
           var blob = await response.blob();
           gameState.imageFile = new File([blob], 'puzzle-image.jpg', { type: blob.type });
         }
+        var coverFragment = gameState.imageElement ? generateCoverFragment(gameState.imageElement, gameState.gridSize) : null;
         var result = await API.savePuzzle(
           gameState.imageFile, gameState.gridSize, gameState.shuffleMoves,
-          gameState.hiddenTileNum, gameState.puzzleName
+          gameState.hiddenTileNum, gameState.puzzleName, publishCheckbox.checked, coverFragment
         );
         gameState.puzzleId = result.puzzleId;
         window.history.replaceState({}, '', '/?puzzle=' + result.puzzleId);
@@ -906,6 +1194,9 @@
 
   function showCopyFallback(url) {
     fbInput.value = url;
+    // Reset title to default share text
+    var titleEl = copyFallbackOverlay.querySelector('p:first-child');
+    if (titleEl) titleEl.textContent = '🔗 分享链接';
     copyFallbackOverlay.style.display = 'block';
     // Auto-select on desktop
     setTimeout(function () {
@@ -931,12 +1222,15 @@
           var blob = await response.blob();
           gameState.imageFile = new File([blob], 'puzzle-image.jpg', { type: blob.type });
         }
+        var coverFragment = generateCoverFragment(gameState.imageElement, gameState.gridSize);
+        var publishedToSquare = publishCheckbox.checked;
         var result = await API.savePuzzle(
           gameState.imageFile, gameState.gridSize, gameState.shuffleMoves,
-          gameState.hiddenTileNum, gameState.puzzleName
+          gameState.hiddenTileNum, gameState.puzzleName, publishedToSquare, coverFragment
         );
         puzzleId = result.puzzleId;
         gameState.puzzleId = puzzleId;
+        showReactionBar(0, 0);
       }
 
       var shareUrl = window.location.origin + '/?puzzle=' + puzzleId;
@@ -965,13 +1259,8 @@
     Confetti.stop();
     victoryOverlay.classList.remove('active');
     gameScreen.classList.remove('active');
-    setupScreen.classList.add('active');
     puzzleGrid.innerHTML = '';
-
-    window.history.replaceState({}, '', '/');
-
-    hideSharedLoading();
-    resumePrompt.style.display = 'none';
+    gameReactions.style.display = 'none';
     gameState.currentState = null;
     gameState.solvedState = null;
     gameState.tileDataUrls = [];
@@ -980,11 +1269,29 @@
     gameState.puzzleId = null;
     gameState.timerStarted = false;
     gameState.completionSubmitted = false;
-    // Discard stale state from shared puzzle
     gameState.imageElement = null;
     gameState.imageFile = null;
     gameState.readonly = false;
     gameState.originalImageUrl = null;
+
+    var ref = appState.referrer;
+    if (ref && ref.screen === 'room' && ref.roomId) {
+      // Navigate back to the room (hard navigation preserves room loading)
+      window.location.href = '/room/' + ref.roomId;
+      return;
+    }
+    if (ref && ref.screen === 'square') {
+      // Navigate back to square and restore scroll position
+      window.location.href = '/square';
+      return;
+    }
+
+    // Default: back to home setup
+    setupScreen.classList.add('active');
+    window.history.replaceState({}, '', '/');
+    mainNav.style.display = 'flex';
+    hideSharedLoading();
+    resumePrompt.style.display = 'none';
     btnStart.disabled = true;
     imagePreview.src = '';
     imagePreview.style.display = 'none';
@@ -1007,6 +1314,8 @@
 
     hideSharedLoading();
     resumePrompt.style.display = 'none';
+    gameReactions.style.display = 'none';
+    mainNav.style.display = 'flex';
     gameState.currentState = null;
     gameState.solvedState = null;
     gameState.tileDataUrls = [];
@@ -1103,14 +1412,371 @@
       return;
     }
     init();
+    routeAndRender();
+  }
+
+  function routeAndRender() {
+    var route = getRoute();
     var puzzleId = getPuzzleIdFromUrl();
 
-    // Populate debug immediately
-    populateDebug(window.location.pathname, puzzleId !== null, puzzleId);
+    // Populate debug
+    populateDebug(window.location.pathname, puzzleId !== null || route.screen !== 'setup', puzzleId || route.roomId || '');
 
-    if (puzzleId) {
+    if (route.screen === 'room') {
+      loadRoomScreen(route.roomId);
+    } else if (route.screen === 'square') {
+      showSquareScreen();
+    } else if (puzzleId) {
+      // setup screen + shared puzzle
+      updateNavActive('home');
       loadSharedPuzzle(puzzleId);
+    } else {
+      // plain setup screen
+      showSetupScreen();
     }
+  }
+
+  function showSetupScreen() {
+    hideAllScreens();
+    setupScreen.classList.add('active');
+    updateNavActive('home');
+    window.history.replaceState({}, '', '/');
+    mainNav.style.display = 'flex';
+  }
+
+  // --- Square Screen ---
+  async function showSquareScreen() {
+    hideAllScreens();
+    squareScreen.classList.add('active');
+    updateNavActive('square');
+    window.history.pushState({ screen: 'square' }, '', '/square');
+    mainNav.style.display = 'flex';
+
+    // Restore scroll position if returning from a puzzle
+    var savedRef = detectReferrer();
+    if (savedRef && savedRef.screen === 'square' && savedRef.scrollY > 0) {
+      setTimeout(function() { window.scrollTo(0, savedRef.scrollY); }, 100);
+    }
+
+    var loading = document.getElementById('square-loading');
+    var grid = document.getElementById('square-grid');
+    var empty = document.getElementById('square-empty');
+    loading.style.display = 'flex';
+    grid.innerHTML = '';
+    empty.style.display = 'none';
+
+    try {
+      var data = await API.getSquare();
+      loading.style.display = 'none';
+      if (!data.puzzles || data.puzzles.length === 0) {
+        empty.style.display = 'block';
+        empty.querySelector('p').textContent = '广场上暂无拼图';
+        return;
+      }
+      renderSquareCards(data.puzzles);
+    } catch (err) {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+      var msg = err.message || '未知错误';
+      if (msg.indexOf('Failed to fetch') > -1 || msg.indexOf('NetworkError') > -1 || msg.indexOf('请求失败') > -1) {
+        msg = '网络连接失败，请检查网络后刷新重试';
+      }
+      empty.querySelector('p').textContent = '加载失败: ' + msg;
+    }
+  }
+
+  function renderSquareCards(puzzles) {
+    var grid = document.getElementById('square-grid');
+    grid.innerHTML = '';
+
+    puzzles.forEach(function(p) {
+      var card = document.createElement('div');
+      card.className = 'square-card';
+      card.innerHTML =
+        '<img class="square-card-fragment" src="' + escHtml(p.cover_fragment_url || '') + '" alt="' + escHtml(p.name) + '" loading="lazy">' +
+        '<div class="square-card-info">' +
+          '<h3 class="square-card-name">' + escHtml(p.name) + '</h3>' +
+          '<span class="square-card-diff">' + p.grid_size + '×' + p.grid_size + '</span>' +
+          '<div class="square-card-stats">' +
+            '<span>🌹 ' + (p.rose_count || 0) + '</span>' +
+            '<span>🩴 ' + (p.slipper_count || 0) + '</span>' +
+            '<span>✅ ' + (p.complete_count || 0) + '</span>' +
+          '</div>' +
+        '</div>';
+
+      card.addEventListener('click', function() {
+        saveReferrer('square');
+        window.location.href = '/?puzzle=' + encodeURIComponent(p.id);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // --- Room Screen ---
+  async function loadRoomScreen(roomId) {
+    hideAllScreens();
+    roomScreen.classList.add('active');
+    updateNavActive(null);
+    window.history.pushState({ screen: 'room', roomId: roomId }, '', '/room/' + roomId);
+    mainNav.style.display = 'flex';
+
+    appState.currentRoomId = roomId;
+    roomName.textContent = '加载中...';
+    roomPuzzleCount.textContent = '';
+    roomPuzzlesEl.innerHTML = '';
+    roomEmpty.style.display = 'none';
+
+    try {
+      var room = await API.getRoom(roomId);
+      roomName.textContent = room.name;
+      roomPuzzleCount.textContent = room.puzzleCount + ' 个拼图';
+      addRecentRoom(room.id, room.name);
+      renderRoomPuzzles(room.puzzles, room.id);
+    } catch (err) {
+      roomName.textContent = '房间不存在';
+      roomEmpty.style.display = 'block';
+      roomEmpty.querySelector('p').textContent = '房间不存在或加载失败';
+    }
+  }
+
+  function renderRoomPuzzles(puzzles, roomId) {
+    roomPuzzlesEl.innerHTML = '';
+
+    if (!puzzles || puzzles.length === 0) {
+      roomEmpty.style.display = 'block';
+      return;
+    }
+    roomEmpty.style.display = 'none';
+
+    puzzles.forEach(function(p) {
+      var card = document.createElement('div');
+      card.className = 'room-puzzle-card' + (p.isExpired ? ' expired' : '');
+      card.innerHTML =
+        '<img class="room-puzzle-thumb" src="' + escHtml(p.coverFragmentUrl || '') + '" alt="" loading="lazy">' +
+        '<div class="room-puzzle-info">' +
+          '<span class="room-puzzle-name">' + escHtml(p.name) + '</span>' +
+          '<span class="room-puzzle-meta">' + p.gridSize + '×' + p.gridSize + ' · 🌹' + (p.roseCount || 0) + ' · ✅' + (p.completeCount || 0) + '</span>' +
+          (p.isExpired ? '<span class="room-puzzle-expired-badge">🕰 已过期</span>' : '') +
+        '</div>' +
+        '<div class="room-puzzle-actions">' +
+          '<a class="room-puzzle-play" href="/?puzzle=' + encodeURIComponent(p.puzzleId) + '" data-ref-room="' + escHtml(roomId) + '">▶ 游玩</a>' +
+          '<button class="room-puzzle-remove" data-rpid="' + escHtml(p.roomPuzzleId) + '">✕</button>' +
+        '</div>';
+
+      card.querySelector('.room-puzzle-remove').addEventListener('click', function(e) {
+        e.stopPropagation();
+        removePuzzleFromRoom(roomId, p.roomPuzzleId);
+      });
+
+      roomPuzzlesEl.appendChild(card);
+    });
+  }
+
+  async function removePuzzleFromRoom(roomId, roomPuzzleId) {
+    if (!confirm('确认从房间中移除这个拼图？')) return;
+    try {
+      await API.removePuzzleFromRoom(roomId, roomPuzzleId);
+      showToast('已移除');
+      loadRoomScreen(roomId); // refresh
+    } catch (err) {
+      showToast('移除失败: ' + err.message);
+    }
+  }
+
+  async function addPuzzleToRoomFromInput() {
+    var inputVal = roomAddPuzzleId.value.trim();
+    if (!inputVal) { showToast('请输入拼图ID或链接'); return; }
+
+    // Extract puzzleId from URL if a full link was pasted
+    var puzzleId = inputVal;
+    try {
+      var url = new URL(inputVal);
+      puzzleId = url.searchParams.get('puzzle') || puzzleId;
+    } catch(e) {}
+    // Also handle /puzzle/xxx format
+    var match = inputVal.match(/puzzle[\/=]([a-f0-9-]{36})/i);
+    if (match) puzzleId = match[1];
+
+    if (!puzzleId || puzzleId.length < 10) {
+      showToast('无法识别拼图ID，请检查输入');
+      return;
+    }
+
+    try {
+      await API.addPuzzleToRoom(appState.currentRoomId, puzzleId);
+      roomAddPuzzleId.value = '';
+      showToast('已添加到房间！');
+      loadRoomScreen(appState.currentRoomId);
+    } catch (err) {
+      if (err.message.indexOf('409') > -1 || err.message.indexOf('already') > -1) {
+        showToast('该拼图已在房间中');
+      } else {
+        showToast('添加失败: ' + err.message);
+      }
+    }
+  }
+
+  // --- Create Room (modal-based, replacing native prompt) ---
+  function openCreateRoomModal() {
+    if (!createRoomModal || !createRoomNameInput) {
+      console.error('createRoomModal elements not found');
+      showToast('界面初始化异常，请刷新页面');
+      return;
+    }
+    createRoomNameInput.value = '';
+    createRoomModal.style.display = 'flex';
+    setTimeout(function() {
+      try { createRoomNameInput.focus(); } catch(e) {}
+    }, 100);
+  }
+
+  function closeCreateRoomModal() {
+    if (createRoomModal) createRoomModal.style.display = 'none';
+  }
+
+  async function confirmCreateRoom() {
+    if (!createRoomNameInput) {
+      showToast('界面初始化异常，请刷新页面');
+      return;
+    }
+    var name = createRoomNameInput.value.trim() || '未命名房间';
+    closeCreateRoomModal();
+
+    // Disable button to prevent double-clicks
+    if (btnCreateRoomConfirm) btnCreateRoomConfirm.disabled = true;
+
+    try {
+      var result = await API.createRoom(name);
+      addRecentRoom(result.id, result.name);
+
+      // Show the room link in a copy-able dialog
+      var roomUrl = window.location.origin + '/room/' + result.id;
+      showRoomCreatedDialog(result.name, roomUrl);
+    } catch (err) {
+      showToast('创建房间失败: ' + (err.message || '请检查网络连接'));
+    } finally {
+      if (btnCreateRoomConfirm) btnCreateRoomConfirm.disabled = false;
+    }
+  }
+
+  // Show room created + link copy dialog
+  function showRoomCreatedDialog(roomName, roomUrl) {
+    // Use the existing copy-fallback-overlay pattern
+    fbInput.value = roomUrl;
+    // Update the title to reflect room creation
+    var titleEl = copyFallbackOverlay.querySelector('p:first-child');
+    if (titleEl) titleEl.textContent = '🏠 房间「' + roomName + '」已创建';
+    copyFallbackOverlay.style.display = 'block';
+    setTimeout(function() {
+      try { fbInput.select(); fbInput.setSelectionRange(0, roomUrl.length); } catch(e) {}
+    }, 100);
+  }
+
+  function shareRoomLink() {
+    if (!appState.currentRoomId) return;
+    var url = window.location.origin + '/room/' + appState.currentRoomId;
+    copyToClipboard(url).then(function() {
+      showToast('✅ 房间链接已复制！');
+    }).catch(function() {
+      showCopyFallback(url);
+    });
+  }
+
+  // --- Room Select Modal ---
+  function openRoomSelectModal() {
+    if (!gameState.puzzleId) {
+      showToast('请先分享拼图后再添加到房间');
+      return;
+    }
+    modalRoomList.innerHTML = '';
+    var rooms = getRecentRooms();
+    if (rooms.length === 0) {
+      modalRoomList.innerHTML = '<p class="modal-room-empty">暂无历史房间，请直接输入房间ID</p>';
+    } else {
+      rooms.forEach(function(r) {
+        var item = document.createElement('div');
+        item.className = 'modal-room-item';
+        item.textContent = r.name + ' (' + r.id.substring(0, 8) + '...)';
+        item.addEventListener('click', function() {
+          modalRoomIdInput.value = r.id;
+        });
+        modalRoomList.appendChild(item);
+      });
+    }
+    modalRoomIdInput.value = '';
+    roomSelectModal.style.display = 'flex';
+  }
+
+  function closeRoomModal() {
+    roomSelectModal.style.display = 'none';
+  }
+
+  async function confirmAddToRoom() {
+    var roomId = modalRoomIdInput.value.trim();
+    if (!roomId) {
+      // Check if a recent room is selected
+      var active = modalRoomList.querySelector('.modal-room-item.active');
+      if (active) roomId = active.dataset.roomId;
+    }
+    if (!roomId) { showToast('请选择或输入房间ID'); return; }
+    if (!gameState.puzzleId) { showToast('找不到当前拼图'); return; }
+
+    try {
+      await API.addPuzzleToRoom(roomId, gameState.puzzleId);
+      addRecentRoom(roomId, '');
+      showToast('✅ 已添加到房间！');
+      closeRoomModal();
+    } catch (err) {
+      if (err.message.indexOf('409') > -1 || err.message.indexOf('already') > -1) {
+        showToast('该拼图已在房间中');
+      } else {
+        showToast('添加失败: ' + err.message);
+      }
+    }
+  }
+
+  // --- Reactions ---
+  async function handleReact(type) {
+    if (!gameState.puzzleId) return;
+    if (hasReacted(gameState.puzzleId, type)) {
+      showToast(type === 'rose' ? '你已经送过玫瑰了 🌹' : '你已经扔过拖鞋了 🩴');
+      return;
+    }
+
+    try {
+      var result = await API.reactToPuzzle(gameState.puzzleId, type);
+      markReacted(gameState.puzzleId, type);
+      // Update count on screen
+      var count = type === 'rose' ? result.rose_count : result.slipper_count;
+      if (type === 'rose') {
+        appState.reactionCounts.rose = count;
+        roseCountEl.textContent = count;
+      } else {
+        appState.reactionCounts.slipper = count;
+        slipperCountEl.textContent = count;
+      }
+      btnRose.classList.toggle('reacted', hasReacted(gameState.puzzleId, 'rose'));
+      btnSlipper.classList.toggle('reacted', hasReacted(gameState.puzzleId, 'slipper'));
+      showToast(type === 'rose' ? '🌹 送出一朵玫瑰！' : '🩴 扔出一只拖鞋！');
+    } catch (err) {
+      showToast('操作失败，请重试');
+    }
+  }
+
+  function showReactionBar(puzzleRoseCount, puzzleSlipperCount) {
+    appState.reactionCounts.rose = puzzleRoseCount || 0;
+    appState.reactionCounts.slipper = puzzleSlipperCount || 0;
+    roseCountEl.textContent = appState.reactionCounts.rose;
+    slipperCountEl.textContent = appState.reactionCounts.slipper;
+    btnRose.classList.toggle('reacted', hasReacted(gameState.puzzleId, 'rose'));
+    btnSlipper.classList.toggle('reacted', hasReacted(gameState.puzzleId, 'slipper'));
+    gameReactions.style.display = 'flex';
   }
 
   if (document.readyState === 'loading') {

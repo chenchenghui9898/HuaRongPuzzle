@@ -23,6 +23,13 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/* Screens that show the fixed nav bar need top offset */
+#setup-screen.active,
+#square-screen.active,
+#room-screen.active {
+  padding-top: 70px;
+}
+
 button, .tile, .upload-area, input[type="text"] {
   touch-action: manipulation;
   -webkit-user-select: none;
@@ -1148,5 +1155,597 @@ button, .tile, .upload-area, input[type="text"] {
     padding: 10px 14px;
     font-size: 0.85rem;
     min-height: auto;
+  }
+}
+
+/* ================================================================
+   Main Navigation
+   ================================================================ */
+
+.main-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(15, 12, 41, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#square-screen, #room-screen {
+  /* body padding-top handles nav offset globally */
+}
+
+.nav-link {
+  padding: 8px 16px;
+  border-radius: 10px;
+  color: #aaa;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s, background 0.2s;
+  border: 1px solid transparent;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link.active {
+  color: #ffd452;
+  border-color: rgba(255, 210, 82, 0.3);
+  background: rgba(255, 210, 82, 0.1);
+}
+
+/* ================================================================
+   Publish Checkbox
+   ================================================================ */
+
+.publish-section {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.publish-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.publish-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #f5576c;
+  cursor: pointer;
+}
+
+.publish-hint {
+  font-size: 0.78rem;
+  color: #666;
+  text-align: center;
+}
+
+/* ================================================================
+   Square Screen
+   ================================================================ */
+
+.square-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.square-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.square-subtitle {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.square-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.square-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #888;
+}
+
+.square-empty {
+  text-align: center;
+  color: #666;
+  padding: 40px 0;
+}
+
+.square-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.square-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.square-card-fragment {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  background: #2a2a3a;
+}
+
+.square-card-info {
+  padding: 12px 14px;
+}
+
+.square-card-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #eee;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.square-card-diff {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(245, 87, 108, 0.15);
+  color: #f5576c;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.square-card-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #999;
+}
+
+/* ================================================================
+   Room Screen
+   ================================================================ */
+
+.room-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.room-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.room-puzzle-count {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.room-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn-room-share {
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 210, 82, 0.25);
+  border-radius: 10px;
+  background: rgba(255, 210, 82, 0.08);
+  color: #ffd452;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-room-share:hover {
+  background: rgba(255, 210, 82, 0.15);
+}
+
+.room-add-section {
+  display: flex;
+  gap: 8px;
+}
+
+.room-add-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.room-add-input:focus {
+  border-color: rgba(245, 87, 108, 0.5);
+}
+
+.room-add-input::placeholder {
+  color: #555;
+}
+
+.btn-room-add {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #52d4ff, #52ff8f);
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.btn-room-add:hover {
+  opacity: 0.9;
+}
+
+/* Room puzzle list */
+.room-puzzles {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room-empty {
+  text-align: center;
+  color: #666;
+  padding: 40px 0;
+}
+
+.room-puzzle-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: background 0.2s;
+}
+
+.room-puzzle-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.room-puzzle-card.expired {
+  opacity: 0.55;
+}
+
+.room-puzzle-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}
+
+.room-puzzle-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.room-puzzle-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #eee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-puzzle-meta {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.room-puzzle-expired-badge {
+  font-size: 0.75rem;
+  color: #f5576c;
+}
+
+.room-puzzle-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.room-puzzle-play {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(82, 212, 255, 0.15);
+  color: #52d4ff;
+  font-size: 0.8rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.room-puzzle-play:hover {
+  background: rgba(82, 212, 255, 0.25);
+}
+
+.room-puzzle-remove {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: transparent;
+  color: #999;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.room-puzzle-remove:hover {
+  color: #f5576c;
+  border-color: rgba(245, 87, 108, 0.4);
+}
+
+/* ================================================================
+   Game Reactions Bar
+   ================================================================ */
+
+.game-reactions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-reaction {
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ddd;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-reaction:hover {
+  transform: scale(1.05);
+}
+
+.btn-reaction.reacted {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-rose:hover {
+  border-color: rgba(245, 87, 108, 0.5);
+  background: rgba(245, 87, 108, 0.12);
+}
+
+.btn-slipper:hover {
+  border-color: rgba(255, 190, 100, 0.5);
+  background: rgba(255, 190, 100, 0.1);
+}
+
+.react-count {
+  font-weight: 600;
+}
+
+.btn-add-to-room {
+  padding: 8px 14px;
+  border: 1px solid rgba(82, 212, 255, 0.25);
+  border-radius: 10px;
+  background: rgba(82, 212, 255, 0.08);
+  color: #52d4ff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-add-to-room:hover {
+  background: rgba(82, 212, 255, 0.15);
+  border-color: rgba(82, 212, 255, 0.45);
+}
+
+/* ================================================================
+   Room Select Modal
+   ================================================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 600;
+}
+
+.modal-card {
+  background: rgba(30, 30, 50, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 28px 22px;
+  width: calc(100vw - 32px);
+  max-width: 380px;
+  text-align: center;
+  animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 0.82rem;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.modal-room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.modal-room-item {
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ccc;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  text-align: left;
+}
+
+.modal-room-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.modal-room-empty {
+  color: #666;
+  font-size: 0.85rem;
+  padding: 8px;
+}
+
+.modal-room-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ================================================================
+   Responsive Additions
+   ================================================================ */
+
+@media (max-width: 600px) {
+  .main-nav {
+    gap: 4px;
+    padding: 8px 10px;
+  }
+
+  .nav-link {
+    padding: 7px 10px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
+
+  .square-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 400px;
+  }
+
+  .square-title {
+    font-size: 1.4rem;
+  }
+
+  .room-title {
+    font-size: 1.1rem;
+  }
+
+  .room-puzzle-card {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .room-puzzle-thumb {
+    width: 44px;
+    height: 44px;
+  }
+
+  .room-puzzle-name {
+    font-size: 0.85rem;
+  }
+
+  .btn-reaction {
+    padding: 7px 10px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .nav-link {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  .square-card-info {
+    padding: 8px 10px;
+  }
+
+  .square-card-name {
+    font-size: 0.85rem;
+  }
+
+  .modal-card {
+    padding: 20px 14px;
   }
 }

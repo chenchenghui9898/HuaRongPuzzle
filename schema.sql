@@ -24,3 +24,58 @@ CREATE INDEX IF NOT EXISTS idx_completions_puzzle_time
 -- Index for cleanup queries
 CREATE INDEX IF NOT EXISTS idx_puzzles_last_opened
   ON puzzles (last_opened_at);
+
+-- ============================================================
+-- Room system
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS rooms (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '未命名房间',
+  owner_id UUID,                    -- 预留：将来关联 users.id
+  device_id TEXT,                   -- 创建设备标识
+  created_at TEXT NOT NULL DEFAULT ((now() AT TIME ZONE 'utc')::text)
+);
+
+CREATE TABLE IF NOT EXISTS room_puzzles (
+  id TEXT PRIMARY KEY,
+  room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  puzzle_id TEXT NOT NULL REFERENCES puzzles(id) ON DELETE CASCADE,
+  added_by TEXT DEFAULT '匿名',
+  added_by_user_id UUID,            -- 预留：将来关联 users.id
+  added_by_device_id TEXT,          -- 添加者设备标识
+  created_at TEXT NOT NULL DEFAULT ((now() AT TIME ZONE 'utc')::text),
+  UNIQUE(room_id, puzzle_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_room_puzzles_room_id
+  ON room_puzzles (room_id);
+
+-- ============================================================
+-- Square listing index
+-- ============================================================
+
+CREATE INDEX IF NOT EXISTS idx_puzzles_square
+  ON puzzles (published_to_square, rose_count DESC, created_at DESC);
+
+-- ============================================================
+-- Atomic counter increment for rose/slipper reactions
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION increment_counter(puzzle_id TEXT, column_name TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+  new_val INTEGER;
+BEGIN
+  IF column_name = 'rose_count' THEN
+    UPDATE puzzles SET rose_count = rose_count + 1 WHERE id = puzzle_id
+    RETURNING rose_count INTO new_val;
+  ELSIF column_name = 'slipper_count' THEN
+    UPDATE puzzles SET slipper_count = slipper_count + 1 WHERE id = puzzle_id
+    RETURNING slipper_count INTO new_val;
+  ELSE
+    RAISE EXCEPTION 'Invalid column_name: % (must be rose_count or slipper_count)', column_name;
+  END IF;
+  RETURN new_val;
+END;
+$$ LANGUAGE plpgsql;

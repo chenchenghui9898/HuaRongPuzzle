@@ -108,13 +108,15 @@ window.API = (function () {
   // Public API
   // =============================================
 
-  async function savePuzzle(imageFile, gridSize, moves, hiddenIndex, name) {
+  async function savePuzzle(imageFile, gridSize, moves, hiddenIndex, name, publishedToSquare, coverFragmentBase64) {
     var formData = new FormData();
     formData.append('image', imageFile);
     formData.append('gridSize', String(gridSize));
     formData.append('moves', JSON.stringify(moves));
     formData.append('hiddenIndex', String(hiddenIndex));
     formData.append('name', name || 'HuaRongImage');
+    if (publishedToSquare) formData.append('publishedToSquare', 'true');
+    if (coverFragmentBase64) formData.append('coverFragmentBase64', coverFragmentBase64);
 
     var res = await fetchWithRetry(apiUrl('/puzzles'), {
       method: 'POST',
@@ -169,7 +171,88 @@ window.API = (function () {
     return res.json();
   }
 
-  var API = { savePuzzle: savePuzzle, loadPuzzle: loadPuzzle, saveCompletion: saveCompletion, getLeaderboard: getLeaderboard, _lastUrl: '', _retries: 0 };
+  // --- Square ---
+  async function getSquare() {
+    var res = await fetchWithRetry(apiUrl('/square'));
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return { error: 'Unknown error' }; });
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  // --- Room ---
+  async function createRoom(name) {
+    var res = await fetchWithRetry(apiUrl('/rooms'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name }),
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return { error: 'Unknown error' }; });
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  async function getRoom(roomId) {
+    var res = await fetchWithRetry(apiUrl('/rooms/' + encodeURIComponent(roomId)));
+    if (!res.ok) {
+      if (res.status === 404) throw new Error('房间不存在');
+      var err = await res.json().catch(function () { return { error: 'Unknown error' }; });
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  async function addPuzzleToRoom(roomId, puzzleId) {
+    var res = await fetchWithRetry(apiUrl('/rooms/' + encodeURIComponent(roomId) + '/puzzles'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ puzzleId: puzzleId }),
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return { error: 'Unknown error' }; });
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  // roomPuzzleId is the room_puzzles.id (join table row id), NOT puzzleId
+  async function removePuzzleFromRoom(roomId, roomPuzzleId) {
+    var res = await fetchWithRetry(apiUrl('/rooms/' + encodeURIComponent(roomId) + '/puzzles/' + encodeURIComponent(roomPuzzleId)), {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return { error: 'Unknown error' }; });
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  // --- Reactions ---
+  async function reactToPuzzle(puzzleId, type) {
+    var res = await fetchWithRetry(apiUrl('/puzzle/' + encodeURIComponent(puzzleId) + '/react'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: type }),
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return { error: 'Unknown error' }; });
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  var API = {
+    savePuzzle: savePuzzle, loadPuzzle: loadPuzzle,
+    saveCompletion: saveCompletion, getLeaderboard: getLeaderboard,
+    getSquare: getSquare,
+    createRoom: createRoom, getRoom: getRoom,
+    addPuzzleToRoom: addPuzzleToRoom, removePuzzleFromRoom: removePuzzleFromRoom,
+    reactToPuzzle: reactToPuzzle,
+    _lastUrl: '', _retries: 0
+  };
 
   // Wrap loadPuzzle to track URL + retries for debug panel
   var _loadPuzzle = loadPuzzle;
