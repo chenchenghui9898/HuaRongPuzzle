@@ -261,6 +261,9 @@
 
     var ctx = gridOverlay.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Fill solid background first to prevent pink flash (Mac WeChat GPU quirk)
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    ctx.fillRect(0, 0, w, h);
     ctx.clearRect(0, 0, w, h);
 
     ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';

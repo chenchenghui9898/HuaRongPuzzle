@@ -27,6 +27,9 @@ window.Confetti = (function () {
       // Use document.documentElement to avoid iOS Safari innerWidth/scrollbar issues
       canvas.width = document.documentElement.clientWidth || window.innerWidth;
       canvas.height = document.documentElement.clientHeight || window.innerHeight;
+      // Prevent uninitialized GPU texture showing pink on Mac WeChat WebView
+      var c = canvas.getContext('2d');
+      c.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
 
