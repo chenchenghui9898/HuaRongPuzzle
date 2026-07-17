@@ -32,6 +32,7 @@ body {
 #room-screen.active,
 #rooms-screen.active {
   padding-top: 70px;
+  align-self: flex-start;  
 }
 
 button, .tile, .upload-area, input[type="text"] {
