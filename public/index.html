@@ -44,7 +44,7 @@
   <nav class="main-nav" id="main-nav">
     <a href="/" class="nav-link" data-nav="home">🏠 首页</a>
     <a href="/square" class="nav-link" data-nav="square">🏛 拼图广场</a>
-    <a href="#" class="nav-link" id="nav-create-room">🏠 创建房间</a>
+    <a href="/rooms" class="nav-link" data-nav="rooms">🏠 房间</a>
   </nav>
 
   <!-- ===== Setup Screen ===== -->
@@ -200,6 +200,30 @@
     </div>
     <div class="room-empty" id="room-empty" style="display:none">
       <p>房间中还没有拼图，快来添加第一个吧！</p>
+    </div>
+  </section>
+
+  <!-- ===== Rooms Hub Screen ===== -->
+  <section id="rooms-screen" class="screen">
+    <div class="rooms-hub-header">
+      <h2 class="rooms-hub-title">🏠 拼图房间</h2>
+      <p class="rooms-hub-subtitle">加入已有房间或创建新房间</p>
+    </div>
+    <div class="rooms-hub-section">
+      <label class="section-label">加入房间</label>
+      <div class="rooms-hub-input-row">
+        <input type="text" id="rooms-hub-id-input" class="room-add-input" placeholder="输入房间ID或链接">
+        <button class="btn-room-add" id="btn-rooms-hub-join">进入</button>
+      </div>
+    </div>
+    <div class="rooms-hub-section" id="rooms-hub-cached-section" style="display:none">
+      <label class="section-label">最近房间</label>
+      <div class="rooms-hub-list" id="rooms-hub-list">
+        <!-- Cached rooms rendered dynamically -->
+      </div>
+    </div>
+    <div class="rooms-hub-section">
+      <button class="btn-start" id="btn-rooms-hub-create" style="max-width:280px;">🏠 新建房间</button>
     </div>
   </section>
 

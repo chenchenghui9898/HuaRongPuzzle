@@ -15,6 +15,14 @@
   // New screens
   var squareScreen = document.getElementById('square-screen');
   var roomScreen = document.getElementById('room-screen');
+  var roomsScreen = document.getElementById('rooms-screen');
+
+  // Rooms Hub refs
+  var roomsHubIdInput = document.getElementById('rooms-hub-id-input');
+  var btnRoomsHubJoin = document.getElementById('btn-rooms-hub-join');
+  var btnRoomsHubCreate = document.getElementById('btn-rooms-hub-create');
+  var roomsHubList = document.getElementById('rooms-hub-list');
+  var roomsHubCachedSection = document.getElementById('rooms-hub-cached-section');
 
   var setupContent = document.getElementById('setup-content');
   var setupSubtitle = document.getElementById('setup-subtitle');
@@ -60,7 +68,6 @@
   var modalRoomIdInput = document.getElementById('modal-room-id-input');
   var btnConfirmAddRoom = document.getElementById('btn-confirm-add-room');
   var btnCancelRoomModal = document.getElementById('btn-cancel-room-modal');
-  var navCreateRoom = document.getElementById('nav-create-room');
 
   // Create Room Modal refs
   var createRoomModal = document.getElementById('create-room-modal');
@@ -284,6 +291,7 @@
     gameScreen.classList.remove('active');
     squareScreen.classList.remove('active');
     roomScreen.classList.remove('active');
+    roomsScreen.classList.remove('active');
     victoryOverlay.classList.remove('active');
     if (pauseOverlay) pauseOverlay.classList.remove('active');
     mainNav.style.display = 'flex';
@@ -295,6 +303,7 @@
       return { screen: 'room', roomId: path.split('/room/')[1] };
     }
     if (path === '/square') return { screen: 'square' };
+    if (path === '/rooms') return { screen: 'rooms' };
     return { screen: 'setup' };
   }
 
@@ -424,10 +433,15 @@
         if (e.target === roomSelectModal) closeRoomModal();
       });
     }
-    navCreateRoom.addEventListener('click', function(e) {
-      e.preventDefault();
-      openCreateRoomModal();
-    });
+    // Rooms hub buttons
+    if (btnRoomsHubJoin) btnRoomsHubJoin.addEventListener('click', joinRoomFromHub);
+    if (btnRoomsHubCreate) btnRoomsHubCreate.addEventListener('click', openCreateRoomModal);
+    if (roomsHubIdInput) {
+      roomsHubIdInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') joinRoomFromHub();
+      });
+    }
+
     if (btnCreateRoomConfirm) btnCreateRoomConfirm.addEventListener('click', confirmCreateRoom);
     if (btnCreateRoomCancel) btnCreateRoomCancel.addEventListener('click', closeCreateRoomModal);
     if (createRoomNameInput) {
@@ -1483,6 +1497,8 @@
 
     if (route.screen === 'room') {
       loadRoomScreen(route.roomId);
+    } else if (route.screen === 'rooms') {
+      showRoomsScreen();
     } else if (route.screen === 'square') {
       showSquareScreen();
     } else if (puzzleId) {
@@ -1501,6 +1517,63 @@
     updateNavActive('home');
     window.history.replaceState({}, '', '/');
     mainNav.style.display = 'flex';
+  }
+
+  // --- Rooms Hub Screen ---
+  function showRoomsScreen() {
+    hideAllScreens();
+    roomsScreen.classList.add('active');
+    updateNavActive('rooms');
+    window.history.pushState({ screen: 'rooms' }, '', '/rooms');
+    mainNav.style.display = 'flex';
+
+    if (roomsHubIdInput) roomsHubIdInput.value = '';
+
+    // Render cached rooms
+    var rooms = getRecentRooms();
+    if (roomsHubList) roomsHubList.innerHTML = '';
+    if (rooms.length === 0) {
+      if (roomsHubCachedSection) roomsHubCachedSection.style.display = 'none';
+    } else {
+      if (roomsHubCachedSection) roomsHubCachedSection.style.display = '';
+      rooms.forEach(function(r) {
+        var item = document.createElement('div');
+        item.className = 'rooms-hub-item';
+        item.innerHTML =
+          '<span class="rooms-hub-item-name">' + escHtml(r.name) + '</span>' +
+          '<span class="rooms-hub-item-id">' + escHtml(r.id.substring(0, 8)) + '...</span>';
+
+        item.addEventListener('click', function() {
+          if (roomsHubIdInput) roomsHubIdInput.value = r.id;
+        });
+
+        if (roomsHubList) roomsHubList.appendChild(item);
+      });
+    }
+  }
+
+  function joinRoomFromHub() {
+    if (!roomsHubIdInput) return;
+    var inputVal = roomsHubIdInput.value.trim();
+    if (!inputVal) { showToast('请输入房间ID或链接'); return; }
+
+    var roomId = inputVal;
+    // Extract roomId from full URL
+    try {
+      var url = new URL(inputVal);
+      var parts = url.pathname.replace(/\/+$/, '').split('/');
+      var idx = parts.indexOf('room');
+      if (idx >= 0 && idx + 1 < parts.length) roomId = parts[idx + 1];
+    } catch(e) {}
+    // Fallback: strip common prefixes
+    if (roomId.startsWith('/room/')) roomId = roomId.replace('/room/', '');
+
+    if (!roomId || roomId.length < 10) {
+      showToast('无法识别房间ID，请检查输入');
+      return;
+    }
+
+    window.location.href = '/room/' + roomId;
   }
 
   // --- Square Screen ---

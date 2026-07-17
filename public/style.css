@@ -29,7 +29,8 @@ body {
 /* Screens that show the fixed nav bar need top offset */
 #setup-screen.active,
 #square-screen.active,
-#room-screen.active {
+#room-screen.active,
+#rooms-screen.active {
   padding-top: 70px;
 }
 
@@ -1619,6 +1620,81 @@ button, .tile, .upload-area, input[type="text"] {
 .btn-add-to-room:hover {
   background: rgba(82, 212, 255, 0.15);
   border-color: rgba(82, 212, 255, 0.45);
+}
+
+/* ================================================================
+   Rooms Hub Screen
+   ================================================================ */
+
+.rooms-hub-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.rooms-hub-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.rooms-hub-subtitle {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.rooms-hub-section {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.rooms-hub-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rooms-hub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.rooms-hub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.rooms-hub-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.rooms-hub-item-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #ddd;
+  font-weight: 500;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rooms-hub-item-id {
+  font-size: 0.72rem;
+  color: #666;
+  font-family: monospace;
+  white-space: nowrap;
 }
 
 /* ================================================================
