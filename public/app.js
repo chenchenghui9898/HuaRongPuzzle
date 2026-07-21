@@ -1072,10 +1072,10 @@
 
       if (rank <= 50) {
         var icon = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : '🏅'));
-        victoryRank.textContent = icon + ' ' + rank;
+        victoryRank.textContent = '当前排名：' + icon + ' ' + rank;
       } else {
-        var pct = Math.round((rank / effectiveTotal) * 100);
-        victoryRank.textContent = 'Top ' + pct + '%';
+        var pct = Math.round(((effectiveTotal - rank) / effectiveTotal) * 100);
+        victoryRank.textContent = '你超过了' + pct + '% 的挑战者！';
       }
       victoryRankLine.style.display = 'block';
     } catch (e) {
@@ -1700,7 +1700,7 @@
           (p.isExpired ? '<span class="room-puzzle-expired-badge">🕰 已过期</span>' : '') +
         '</div>' +
         '<div class="room-puzzle-actions">' +
-          '<a class="room-puzzle-play" href="/?puzzle=' + encodeURIComponent(p.puzzleId) + '" data-ref-room="' + escHtml(roomId) + '">👁️ 查看</a>' +
+          '<a class="room-puzzle-play" href="/?puzzle=' + encodeURIComponent(p.puzzleId) + '" data-ref-room="' + escHtml(roomId) + '">➡️ 查看</a>' +
           '<button class="room-puzzle-remove" data-rpid="' + escHtml(p.roomPuzzleId) + '">✕</button>' +
         '</div>';
 
