@@ -1700,7 +1700,7 @@
           (p.isExpired ? '<span class="room-puzzle-expired-badge">🕰 已过期</span>' : '') +
         '</div>' +
         '<div class="room-puzzle-actions">' +
-          '<a class="room-puzzle-play" href="/?puzzle=' + encodeURIComponent(p.puzzleId) + '" data-ref-room="' + escHtml(roomId) + '">▶ 游玩</a>' +
+          '<a class="room-puzzle-play" href="/?puzzle=' + encodeURIComponent(p.puzzleId) + '" data-ref-room="' + escHtml(roomId) + '">👁️ 查看</a>' +
           '<button class="room-puzzle-remove" data-rpid="' + escHtml(p.roomPuzzleId) + '">✕</button>' +
         '</div>';
 
